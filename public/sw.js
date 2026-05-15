@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yjp-absensi-v2';
+const CACHE_NAME = 'yjp-absensi-v3';
 const STATIC_ASSETS = [
   '/login.html',
   '/css/style.css',
@@ -28,7 +28,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls — selalu network
+  // Abaikan request lintas domain (misal ke Supabase API)
+  if (url.origin !== self.location.origin) return;
+
+  // API calls internal — selalu network
   if (url.pathname.startsWith('/api/')) return;
 
   // face-api models — network only
