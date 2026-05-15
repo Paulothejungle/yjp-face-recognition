@@ -307,15 +307,27 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .container { padding: 0 16px; }
-  .navbar { padding: 0 16px; }
+  .navbar { padding: 0 12px; gap: 8px; }
+  .navbar-brand { gap: 8px; }
+  .navbar-brand-text .tagline { display: none; }
+  .navbar-nav { gap: 2px; }
+  .navbar-nav .nav-link { padding: 8px; }
+  .navbar-nav .nav-link span { display: none; }
+  .navbar-user { gap: 8px; }
+  .logout-text { display: none; }
+  #nav-btn-logout { padding: 8px; border-radius: 8px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .navbar-nav .nav-link span { display: none; }
   .main { padding-top: 80px; }
   table { font-size: 13px; }
   th, td { padding: 10px 12px; }
+  .card { padding: 16px; }
+  .page-header { margin-bottom: 20px; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
-  .page-header h1 { font-size: 22px; }
+  .page-header h1 { font-size: 20px; }
+  .navbar-brand-text .company { font-size: 11px; }
+  .absensi-layout { gap: 16px; }
+  .camera-container { border-radius: var(--radius-sm); border-width: 1px; }
 }
