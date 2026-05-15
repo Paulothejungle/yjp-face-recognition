@@ -123,7 +123,7 @@ async function handleDetected(match) {
     // Jika sudah absen masuk dan keluar, hentikan proses (jangan hit API lagi)
     if (rec && rec.check_in && rec.check_out) {
       showOverlay('success', '🎉', 'Absen Selesai', 'Anda sudah menyelesaikan absensi masuk dan keluar untuk hari ini.');
-      isProcessing = false;
+      // isProcessing dibiarkan true agar tidak mendeteksi lagi sampai kamera direstart manual
       return;
     }
 
@@ -145,9 +145,7 @@ async function handleDetected(match) {
   } catch (err) {
     showOverlay('error', '❌', 'Absen Ditolak', err.message);
     showToast('error', 'Absen Ditolak', err.message);
-    // User harus klik "Tutup/Coba Lagi" untuk merestart kamera
-  } finally {
-    isProcessing = false;
+    // isProcessing dibiarkan true agar kamera tidak melakukan deteksi beruntun!
   }
 }
 
@@ -205,6 +203,7 @@ btnStop.addEventListener('click', () => {
 });
 
 btnStart.addEventListener('click', async () => {
+  isProcessing = false; // Reset lock agar bisa mendeteksi wajah lagi
   cameraSection.classList.remove('hidden');
   btnStart.classList.add('hidden');
   btnStop.classList.remove('hidden');
