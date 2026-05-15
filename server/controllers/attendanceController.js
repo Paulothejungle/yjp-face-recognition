@@ -39,8 +39,21 @@ async function checkIn(req, res) {
       });
     }
 
-    const today = new Date().toISOString().split('T')[0];
     const now = new Date();
+    const wibTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+    const day = wibTime.getDay(); // 0=Minggu, 1=Senin... 6=Sabtu
+    const currentHour = wibTime.getHours();
+    const currentMinute = wibTime.getMinutes();
+    
+    // Format YYYY-MM-DD sesuai WIB
+    const wibYear = wibTime.getFullYear();
+    const wibMonth = String(wibTime.getMonth() + 1).padStart(2, '0');
+    const wibDateStr = String(wibTime.getDate()).padStart(2, '0');
+    const today = `${wibYear}-${wibMonth}-${wibDateStr}`;
+
+    if (day === 0) {
+      return res.status(403).json({ error: 'Hari Minggu libur, absen masuk tidak diizinkan.' });
+    }
 
     // Cek apakah sudah absen masuk hari ini
     const { data: existing } = await supabaseAdmin
@@ -54,10 +67,8 @@ async function checkIn(req, res) {
       return res.status(409).json({ error: 'Sudah melakukan absen masuk hari ini' });
     }
 
-    // Tentukan status: terlambat atau hadir
-    const deadline = settings.check_in_deadline; // 'HH:MM:SS'
-    const [dH, dM] = deadline.split(':').map(Number);
-    const isLate = now.getHours() > dH || (now.getHours() === dH && now.getMinutes() > dM);
+    // Tentukan status: terlambat atau hadir (Batas 07:30)
+    const isLate = currentHour > 7 || (currentHour === 7 && currentMinute > 30);
     const status = isLate ? 'terlambat' : 'hadir';
 
     // Upsert attendance
@@ -114,8 +125,31 @@ async function checkOut(req, res) {
       });
     }
 
-    const today = new Date().toISOString().split('T')[0];
     const now = new Date();
+    const wibTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+    const day = wibTime.getDay(); // 0=Minggu, 1=Senin... 6=Sabtu
+    const currentHour = wibTime.getHours();
+    
+    // Format YYYY-MM-DD sesuai WIB
+    const wibYear = wibTime.getFullYear();
+    const wibMonth = String(wibTime.getMonth() + 1).padStart(2, '0');
+    const wibDateStr = String(wibTime.getDate()).padStart(2, '0');
+    const today = `${wibYear}-${wibMonth}-${wibDateStr}`;
+
+    if (day === 0) {
+      return res.status(403).json({ error: 'Hari Minggu libur, absen keluar tidak diizinkan.' });
+    }
+
+    // Validasi jam pulang
+    if (day >= 1 && day <= 5) { // Senin - Jumat
+      if (currentHour < 17) {
+        return res.status(403).json({ error: 'Belum waktunya pulang. Absen keluar baru bisa dilakukan jam 17:00.' });
+      }
+    } else if (day === 6) { // Sabtu
+      if (currentHour < 12) {
+        return res.status(403).json({ error: 'Belum waktunya pulang. Absen keluar baru bisa dilakukan jam 12:00.' });
+      }
+    }
 
     const { data: existing } = await supabaseAdmin
       .from('attendance')
