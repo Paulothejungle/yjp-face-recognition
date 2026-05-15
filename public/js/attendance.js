@@ -80,9 +80,20 @@ function showOverlay(type, icon, title, msg) {
     ? 'rgba(0,20,0,0.92)'
     : 'rgba(30,0,0,0.92)';
   if (type === 'success') {
-    setTimeout(() => overlay.classList.add('hidden'), 4000);
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      // Kamera biarkan mati setelah sukses, user harus klik Mulai Kamera manual jika ingin mengulang.
+      document.getElementById('camera-section').classList.add('hidden');
+      document.getElementById('btn-start-camera').classList.remove('hidden');
+      document.getElementById('btn-stop-camera').classList.add('hidden');
+    }, 4000);
   }
 }
+
+window.closeErrorOverlay = function() {
+  document.getElementById('status-overlay').classList.add('hidden');
+  restartCamera();
+};
 
 // ── Handle face match
 async function handleDetected(match) {
@@ -105,6 +116,14 @@ async function handleDetected(match) {
     const today = new Date().toISOString().split('T')[0];
     const existing = await Auth.apiCall('GET', `/api/attendance/me?date=${today}`);
     const rec = existing[0];
+
+    // Jika sudah absen masuk dan keluar, hentikan proses (jangan hit API lagi)
+    if (rec && rec.check_in && rec.check_out) {
+      showOverlay('success', '🎉', 'Absen Selesai', 'Anda sudah menyelesaikan absensi masuk dan keluar untuk hari ini.');
+      isProcessing = false;
+      return;
+    }
+
     const action = (!rec || !rec.check_in) ? 'checkin' : 'checkout';
 
     // Kirim ke API
@@ -123,17 +142,17 @@ async function handleDetected(match) {
   } catch (err) {
     showOverlay('error', '❌', 'Absen Ditolak', err.message);
     showToast('error', 'Absen Ditolak', err.message);
-    restartCamera();
+    // User harus klik "Tutup/Coba Lagi" untuk merestart kamera
   } finally {
     isProcessing = false;
   }
 }
 
 function restartCamera() {
-  setTimeout(async () => {
-    await FaceRec.startVideo(videoEl);
+  // Tidak perlu delay 3 detik lagi karena user memicunya manual lewat tombol Tutup
+  FaceRec.startVideo(videoEl).then(() => {
     videoEl.addEventListener('play', startDetection, { once: true });
-  }, 3000);
+  }).catch(e => console.log(e));
 }
 
 function startDetection() {
