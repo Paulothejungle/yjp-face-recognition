@@ -90,13 +90,15 @@ function showOverlay(type, icon, title, msg) {
   }
 }
 
-window.closeErrorOverlay = function() {
+function closeErrorOverlay() {
   document.getElementById('status-overlay').classList.add('hidden');
   // Matikan kamera agar tidak terjadi infinite loop saat error permanen
   document.getElementById('camera-section').classList.add('hidden');
   document.getElementById('btn-start-camera').classList.remove('hidden');
   document.getElementById('btn-stop-camera').classList.add('hidden');
-};
+}
+
+document.getElementById('btn-close-error').addEventListener('click', closeErrorOverlay);
 
 // ── Handle face match
 async function handleDetected(match) {
