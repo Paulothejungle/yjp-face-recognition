@@ -92,7 +92,10 @@ function showOverlay(type, icon, title, msg) {
 
 window.closeErrorOverlay = function() {
   document.getElementById('status-overlay').classList.add('hidden');
-  restartCamera();
+  // Matikan kamera agar tidak terjadi infinite loop saat error permanen
+  document.getElementById('camera-section').classList.add('hidden');
+  document.getElementById('btn-start-camera').classList.remove('hidden');
+  document.getElementById('btn-stop-camera').classList.add('hidden');
 };
 
 // ── Handle face match
