@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — PT. Yudanta Jaya Putra</title>
+  <meta name="description" content="Login Sistem Absensi PT. Yudanta Jaya Putra">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-wrapper { width: 100%; max-width: 420px; padding: 20px; position: relative; z-index: 1; }
+    .login-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .login-logo .logo-box {
+      width: 72px; height: 72px; border-radius: 20px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 36px; font-weight: 900; color: white; margin-bottom: 16px;
+      box-shadow: 0 12px 40px rgba(59,130,246,0.4);
+      animation: logoFloat 3s ease-in-out infinite;
+    }
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .login-logo h1 { font-size: 20px; font-weight: 800; color: var(--text); }
+    .login-logo p { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+
+    .login-card { position: relative; }
+    .login-card::before {
+      content: ''; position: absolute; inset: -1px; border-radius: calc(var(--radius) + 1px);
+      background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(99,102,241,0.3), transparent);
+      z-index: -1;
+    }
+
+    .input-wrapper { position: relative; }
+    .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 16px; pointer-events: none; }
+    .input-wrapper .form-control { padding-left: 42px; }
+
+    .btn-login { position: relative; overflow: hidden; }
+    .btn-login .shimmer {
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transform: translateX(-100%); animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+
+    .login-footer { text-align: center; margin-top: 24px; font-size: 12px; color: var(--text-3); }
+
+    .eye-toggle { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-3); cursor: pointer; padding: 2px; font-size: 16px; }
+    .eye-toggle:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <div class="login-wrapper">
+    <div class="login-logo">
+      <div class="logo-box">Y</div>
+      <h1>PT. Yudanta Jaya Putra</h1>
+      <p>Sistem Absensi Face Recognition</p>
+    </div>
+
+    <div class="card login-card">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;">Selamat Datang 👋</h2>
+      <p class="text-muted text-sm" style="margin-bottom:24px;">Masuk dengan akun perusahaan Anda</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <div class="input-wrapper">
+            <span class="input-icon">✉️</span>
+            <input
+              type="email" id="email" class="form-control"
+              placeholder="nama@yjp.com" required autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input
+              type="password" id="password" class="form-control"
+              placeholder="Masukkan password" required autocomplete="current-password"
+            >
+            <button type="button" class="eye-toggle" id="toggle-pwd" aria-label="Tampilkan password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login" class="btn btn-primary btn-block btn-lg btn-login" style="margin-top:8px;">
+          <div class="shimmer"></div>
+          <span id="btn-text">Masuk</span>
+          <span id="btn-spinner" class="hidden"><span class="spinner"></span></span>
+        </button>
+      </form>
+    </div>
+
+    <div class="login-footer">
+      <p>© 2026 PT. Yudanta Jaya Putra. All rights reserved.</p>
+      <p style="margin-top:4px;">Hubungi Admin jika lupa password</p>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    // Redirect jika sudah login
+    if (Auth.isLoggedIn()) Auth.redirectByRole();
+
+    // Toggle password visibility
+    document.getElementById('toggle-pwd').addEventListener('click', () => {
+      const pwd = document.getElementById('password');
+      const btn = document.getElementById('toggle-pwd');
+      if (pwd.type === 'password') { pwd.type = 'text'; btn.textContent = '🙈'; }
+      else { pwd.type = 'password'; btn.textContent = '👁️'; }
+    });
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btnText = document.getElementById('btn-text');
+      const btnSpinner = document.getElementById('btn-spinner');
+      const btn = document.getElementById('btn-login');
+
+      btn.disabled = true;
+      btnText.classList.add('hidden');
+      btnSpinner.classList.remove('hidden');
+
+      try {
+        const data = await Auth.login(email, password);
+        showToast('success', 'Login Berhasil', 'Mengalihkan halaman...');
+        setTimeout(() => Auth.redirectByRole(data.role), 800);
+      } catch (err) {
+        showToast('error', 'Login Gagal', err.message);
+        btn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnSpinner.classList.add('hidden');
+        // Shake animation
+        const card = document.querySelector('.login-card');
+        card.style.animation = 'shake 0.4s ease';
+        setTimeout(() => card.style.animation = '', 400);
+      }
+    });
+  </script>
+  <style>
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+  </style>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi — PT. Yudanta Jaya Putra</title>
+  <meta name="description" content="Absensi Face Recognition PT. Yudanta Jaya Putra">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .absensi-layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .absensi-layout { grid-template-columns: 1fr; } }
+
+    .status-overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: rgba(0,0,0,0.85);
+      z-index: 10; border-radius: var(--radius-lg); gap: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .status-overlay .status-icon { font-size: 64px; animation: iconPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes iconPop { from { transform: scale(0); } to { transform: scale(1); } }
+    .status-overlay h2 { font-size: 24px; font-weight: 800; color: white; }
+    .status-overlay p { color: var(--text-2); font-size: 15px; }
+
+    .detected-name {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,15,30,0.9); backdrop-filter: blur(10px);
+      padding: 10px 20px; border-radius: 99px; white-space: nowrap;
+      border: 1px solid var(--border-active); pointer-events: none;
+    }
+    .detected-name .name { font-weight: 700; font-size: 15px; color: var(--primary); }
+    .detected-name .confidence { font-size: 12px; color: var(--text-3); }
+
+    .info-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: var(--radius-sm); background: rgba(30,41,59,0.5); border: 1px solid var(--border); margin-bottom: 12px; }
+    .info-card .info-icon { font-size: 24px; }
+    .info-card .info-label { font-size: 12px; color: var(--text-3); }
+    .info-card .info-value { font-size: 15px; font-weight: 600; }
+
+    .loading-model { text-align: center; padding: 40px 20px; color: var(--text-2); }
+    .loading-model .progress-bar { height: 4px; background: var(--bg-3); border-radius: 2px; margin-top: 16px; overflow: hidden; }
+    .loading-model .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 2px; transition: width 0.3s; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container">
+      <div class="page-header">
+        <h1>📸 Absensi Face Recognition</h1>
+        <p>Posisikan wajah Anda di depan kamera untuk melakukan absensi</p>
+      </div>
+
+      <div class="absensi-layout">
+        <!-- Camera Side -->
+        <div>
+          <!-- Loading model -->
+          <div class="card loading-model" id="loading-section">
+            <div class="spinner spinner-lg" style="margin:0 auto 16px;"></div>
+            <p style="font-weight:600;">Memuat model pengenalan wajah...</p>
+            <p class="text-sm text-muted" style="margin-top:4px;">Harap tunggu sebentar</p>
+            <div class="progress-bar" style="margin-top:20px;">
+              <div class="progress-fill" id="model-progress" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Camera -->
+          <div class="camera-container hidden" id="camera-section">
+            <video id="video" autoplay muted playsinline></video>
+            <canvas id="overlay-canvas"></canvas>
+            <div class="scan-frame"><span></span></div>
+            <div class="scan-line"></div>
+            <div id="detected-info" class="hidden detected-name">
+              <div class="name" id="detected-name-text">-</div>
+              <div class="confidence" id="detected-confidence"></div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 mt-4" style="flex-wrap:wrap;">
+            <button id="btn-start-camera" class="btn btn-primary hidden">
+              📷 Mulai Kamera
+            </button>
+            <button id="btn-stop-camera" class="btn btn-ghost hidden">
+              ⏹ Stop Kamera
+            </button>
+          </div>
+        </div>
+
+        <!-- Info Side -->
+        <div>
+          <!-- Clock -->
+          <div class="card" style="text-align:center;padding:20px;margin-bottom:16px;">
+            <div style="font-size:13px;color:var(--text-3);margin-bottom:4px;">Waktu Sekarang</div>
+            <div id="clock" style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary);"></div>
+            <div id="date-display" style="font-size:13px;color:var(--text-2);margin-top:4px;"></div>
+          </div>
+
+          <!-- Status Absen Hari Ini -->
+          <div class="card" style="margin-bottom:16px;">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text-2);">STATUS ABSEN ANDA HARI INI</h3>
+            <div class="info-card">
+              <span class="info-icon">🕐</span>
+              <div>
+                <div class="info-label">Absen Masuk</div>
+                <div class="info-value" id="status-masuk">-</div>
+              </div>
+            </div>
+            <div class="info-card">
+              <span class="info-icon">🕔</span>
+              <div>
+                <div class="info-label">Absen Keluar</div>
+                <div class="info-value" id="status-keluar">-</div>
+              </div>
+            </div>
+            <div class="info-card">
+              <span class="info-icon">📍</span>
+              <div>
+                <div class="info-label">Status Lokasi</div>
+                <div class="info-value" id="status-lokasi">Menunggu...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panduan -->
+          <div class="card" style="padding:16px;">
+            <h3 style="font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:10px;">📌 PANDUAN</h3>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li class="text-sm" style="color:var(--text-2);">✓ Pastikan wajah terlihat jelas di kamera</li>
+              <li class="text-sm" style="color:var(--text-2);">✓ Cahaya cukup terang di wajah Anda</li>
+              <li class="text-sm" style="color:var(--text-2);">✓ Izinkan akses kamera & lokasi GPS</li>
+              <li class="text-sm" style="color:var(--text-2);">✓ Absen dalam radius <span id="radius-info">100</span>m dari kantor</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Status overlay (success/fail) -->
+  <div id="status-overlay" class="status-overlay hidden" style="position:fixed;z-index:999;border-radius:0;">
+    <div class="status-icon" id="overlay-icon">✅</div>
+    <h2 id="overlay-title">Absen Berhasil!</h2>
+    <p id="overlay-msg">Selamat datang, </p>
+    <button onclick="document.getElementById('status-overlay').classList.add('hidden')" class="btn btn-ghost btn-sm" style="margin-top:8px;">Tutup</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="/js/auth.js?v=2"></script>
+  <script src="/js/faceRecognition.js"></script>
+  <script src="/js/attendance.js"></script>
+</body>
+</html>

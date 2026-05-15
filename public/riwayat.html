@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riwayat Absensi — PT. Yudanta Jaya Putra</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .riwayat-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: var(--transition); }
+    .riwayat-card:hover { background: rgba(59,130,246,0.05); }
+    .riwayat-card:last-child { border-bottom: none; }
+    .date-col { min-width: 120px; }
+    .time-col { display: flex; gap: 20px; flex: 1; }
+    .time-item { display: flex; flex-direction: column; }
+    .time-item .label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+    .time-item .value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container" style="max-width:800px;">
+      <div class="page-header">
+        <h1>🕐 Riwayat Absensi Saya</h1>
+        <p id="user-subtitle">Rekap kehadiran pribadi Anda</p>
+      </div>
+
+      <!-- Mini Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;" id="mini-stats">
+        <div class="card stat-card card-sm">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <div class="value text-success" id="rs-hadir">-</div>
+            <div class="label">Hadir</div>
+          </div>
+        </div>
+        <div class="card stat-card card-sm">
+          <div class="stat-icon yellow">⏰</div>
+          <div class="stat-info">
+            <div class="value text-warning" id="rs-terlambat">-</div>
+            <div class="label">Terlambat</div>
+          </div>
+        </div>
+        <div class="card stat-card card-sm">
+          <div class="stat-icon red">❌</div>
+          <div class="stat-info">
+            <div class="value text-danger" id="rs-alpha">-</div>
+            <div class="label">Alpha</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Bulan</label>
+            <input type="month" class="form-control" id="riwayat-month">
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-load-riwayat">🔍 Tampilkan</button>
+        </div>
+
+        <div id="riwayat-list">
+          <div class="text-center text-muted" style="padding:48px;">
+            <div class="spinner" style="margin:0 auto 16px;"></div>
+            Memuat riwayat...
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    if (!Auth.requireAuth()) throw new Error('Not auth');
+    document.getElementById('navbar-container').innerHTML = renderNavbar('riwayat');
+    const user = Auth.getUser();
+    document.getElementById('user-subtitle').textContent = `Rekap kehadiran ${user?.name || 'Anda'}`;
+
+    const monthInput = document.getElementById('riwayat-month');
+    monthInput.value = new Date().toISOString().slice(0, 7);
+
+    function fmt(ts) { return ts ? new Date(ts).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-'; }
+    function fmtDate(d) { return new Date(d).toLocaleDateString('id-ID', {weekday:'short', day:'2-digit', month:'short'}); }
+    function durasi(cin, cout) {
+      if (!cin || !cout) return '-';
+      const ms = new Date(cout) - new Date(cin);
+      const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+      return `${h}j ${m}m`;
+    }
+    function statusBadge(s) {
+      const map = {hadir:'badge-success', terlambat:'badge-warning', alpha:'badge-danger'};
+      const label = {hadir:'Hadir', terlambat:'Terlambat', alpha:'Alpha'};
+      return `<span class="badge ${map[s]||''}">${label[s]||s}</span>`;
+    }
+
+    async function loadRiwayat() {
+      const month = monthInput.value;
+      if (!month) return;
+      const [y, m] = month.split('-');
+      const start = `${y}-${m}-01`;
+      const end = new Date(y, m, 0).toISOString().split('T')[0];
+
+      const list = document.getElementById('riwayat-list');
+      list.innerHTML = `<div class="text-center" style="padding:32px;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+
+      try {
+        const data = await Auth.apiCall('GET', `/api/attendance/me?start_date=${start}&end_date=${end}`);
+
+        document.getElementById('rs-hadir').textContent = data.filter(r=>r.status==='hadir').length;
+        document.getElementById('rs-terlambat').textContent = data.filter(r=>r.status==='terlambat').length;
+        document.getElementById('rs-alpha').textContent = data.filter(r=>r.status==='alpha').length;
+
+        if (!data.length) {
+          list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><h3>Tidak ada data</h3><p>Tidak ada rekap absensi untuk bulan ini</p></div>`;
+          return;
+        }
+
+        list.innerHTML = data.map(row => `
+          <div class="riwayat-card">
+            <div class="date-col">
+              <div style="font-weight:700;">${fmtDate(row.date)}</div>
+              <div style="font-size:12px;color:var(--text-3);">${new Date(row.date).getFullYear()}</div>
+            </div>
+            <div class="time-col">
+              <div class="time-item">
+                <span class="label">Masuk</span>
+                <span class="value" style="color:${row.check_in ? 'var(--success)' : 'var(--text-3)'};">${fmt(row.check_in)}</span>
+              </div>
+              <div class="time-item">
+                <span class="label">Keluar</span>
+                <span class="value" style="color:${row.check_out ? 'var(--primary)' : 'var(--text-3)'};">${fmt(row.check_out)}</span>
+              </div>
+              <div class="time-item">
+                <span class="label">Durasi</span>
+                <span class="value">${durasi(row.check_in, row.check_out)}</span>
+              </div>
+            </div>
+            <div>${statusBadge(row.status)}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>Gagal memuat</h3><p>${err.message}</p></div>`;
+      }
+    }
+
+    document.getElementById('btn-load-riwayat').addEventListener('click', loadRiwayat);
+    loadRiwayat();
+  </script>
+</body>
+</html>

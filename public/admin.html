@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — PT. Yudanta Jaya Putra</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    .employee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .emp-card { position: relative; overflow: hidden; cursor: pointer; transition: var(--transition); }
+    .emp-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(59,130,246,0.2); border-color: var(--border-active); }
+    .emp-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: white; margin-bottom: 12px; overflow: hidden; border: 3px solid var(--border); }
+    .emp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .emp-badge { position: absolute; top: 12px; right: 12px; }
+    .emp-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+    .enrollment-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+    .enrollment-thumb { aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--bg-3); border: 2px solid var(--border); position: relative; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 20px; }
+    .enrollment-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .enrollment-thumb.captured { border-color: var(--success); }
+
+    #enrollment-camera { max-width: 360px; margin: 0 auto; }
+    #enrollment-video { width: 100%; border-radius: var(--radius); }
+
+    #settings-map { height: 300px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container">
+      <div class="page-header">
+        <h1>⚙️ Admin Panel</h1>
+        <p>Kelola karyawan, enrollment wajah, dan pengaturan sistem</p>
+      </div>
+
+      <div class="tabs" id="admin-tabs">
+        <button class="tab-btn active" data-tab="karyawan">👥 Karyawan</button>
+        <button class="tab-btn" data-tab="enrollment">📸 Enrollment Wajah</button>
+        <button class="tab-btn" data-tab="pengaturan">⚙️ Pengaturan</button>
+      </div>
+
+      <!-- TAB: KARYAWAN -->
+      <div id="tab-karyawan" class="tab-content">
+        <div class="flex justify-between items-center mb-4" style="flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;">Daftar Karyawan</h2>
+            <p class="text-sm text-muted" id="emp-count">Memuat...</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-emp">➕ Tambah Karyawan</button>
+        </div>
+        <div class="employee-grid" id="employee-grid">
+          <div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3);">
+            <div class="spinner spinner-lg" style="margin:0 auto 16px;"></div>
+            Memuat data karyawan...
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: ENROLLMENT -->
+      <div id="tab-enrollment" class="tab-content hidden">
+        <div class="card" style="max-width:600px;">
+          <h2 style="font-size:16px;font-weight:700;margin-bottom:4px;">📸 Enrollment Wajah Karyawan</h2>
+          <p class="text-sm text-muted" style="margin-bottom:20px;">Pilih karyawan dan ambil 5 foto wajah untuk registrasi pengenalan wajah</p>
+
+          <div class="form-group">
+            <label class="form-label">Pilih Karyawan</label>
+            <select class="form-control" id="enrollment-employee-select">
+              <option value="">-- Pilih Karyawan --</option>
+            </select>
+          </div>
+
+          <div id="enrollment-camera" class="hidden">
+            <div class="camera-container" style="aspect-ratio:4/3;max-width:360px;margin:0 auto;">
+              <video id="enrollment-video" autoplay muted playsinline></video>
+              <canvas id="enrollment-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+            </div>
+            <div class="enrollment-preview" id="enrollment-preview">
+              <div class="enrollment-thumb">1</div>
+              <div class="enrollment-thumb">2</div>
+              <div class="enrollment-thumb">3</div>
+              <div class="enrollment-thumb">4</div>
+              <div class="enrollment-thumb">5</div>
+            </div>
+            <div class="flex gap-3 mt-4">
+              <button class="btn btn-primary" id="btn-capture">📷 Ambil Foto</button>
+              <button class="btn btn-success hidden" id="btn-save-face">💾 Simpan Wajah</button>
+              <button class="btn btn-ghost" id="btn-reset-capture">🔄 Ulangi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: PENGATURAN -->
+      <div id="tab-pengaturan" class="tab-content hidden">
+        <div class="grid-2" style="gap:24px;align-items:start;">
+          <div class="card">
+            <h2 style="font-size:16px;font-weight:700;margin-bottom:20px;">🏢 Pengaturan Kantor</h2>
+            <form id="settings-form">
+              <div class="form-group">
+                <label class="form-label">Latitude Kantor</label>
+                <input type="number" step="any" class="form-control" id="set-lat" placeholder="-6.2088">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Longitude Kantor</label>
+                <input type="number" step="any" class="form-control" id="set-lng" placeholder="106.8456">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Radius Absen (meter)</label>
+                <input type="number" class="form-control" id="set-radius" placeholder="100">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Batas Jam Masuk</label>
+                <input type="time" class="form-control" id="set-deadline">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jam Mulai Pulang</label>
+                <input type="time" class="form-control" id="set-checkout-start">
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">💾 Simpan Pengaturan</button>
+            </form>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+              <h3 style="font-size:14px;font-weight:700;">📍 Klik Peta untuk Set Koordinat Kantor</h3>
+              <p class="text-sm text-muted" style="margin-top:2px;">Klik titik di peta → koordinat otomatis terisi</p>
+            </div>
+            <div id="settings-map"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal Tambah Karyawan -->
+  <div class="modal-backdrop" id="modal-add-emp">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>➕ Tambah Karyawan Baru</h3>
+        <button class="modal-close" id="close-modal-add">✕</button>
+      </div>
+      <form id="form-add-emp">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap *</label>
+          <input type="text" class="form-control" id="inp-name" placeholder="Budi Santoso" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email (format: nama@yjp.com) *</label>
+          <input type="email" class="form-control" id="inp-email" placeholder="budi@yjp.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" class="form-control" id="inp-password" placeholder="Min. 8 karakter" required minlength="8">
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button type="submit" class="btn btn-primary flex-1" id="btn-submit-emp">Simpan Karyawan</button>
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-emp')">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/auth.js?v=2"></script>
+  <script src="/js/faceRecognition.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

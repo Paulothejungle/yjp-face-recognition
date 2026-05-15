@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Absensi — PT. Yudanta Jaya Putra</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    .filter-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; padding: 20px; border-bottom: 1px solid var(--border); }
+    .filter-bar .form-group { margin-bottom: 0; min-width: 150px; }
+    .summary-row { display: flex; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .summary-chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+
+    .export-btns { display: flex; gap: 10px; }
+
+    #loc-map { height: 280px; }
+    .location-modal-content { max-width: 560px; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container">
+      <div class="page-header">
+        <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:16px;">
+          <div>
+            <h1>📊 Laporan Absensi</h1>
+            <p>Filter dan ekspor data kehadiran karyawan PT. Yudanta Jaya Putra</p>
+          </div>
+          <div class="export-btns">
+            <button class="btn btn-danger" id="btn-pdf">📄 Export PDF</button>
+            <button class="btn btn-success" id="btn-excel">📊 Export Excel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="form-group">
+            <label class="form-label">Filter Periode</label>
+            <select class="form-control" id="filter-type">
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+              <option value="monthly" selected>Bulanan</option>
+              <option value="yearly">Tahunan</option>
+            </select>
+          </div>
+          <div class="form-group" id="param-daily">
+            <label class="form-label">Tanggal</label>
+            <input type="date" class="form-control" id="param-date">
+          </div>
+          <div class="form-group hidden" id="param-weekly">
+            <label class="form-label">Minggu</label>
+            <input type="week" class="form-control" id="param-week">
+          </div>
+          <div class="form-group hidden" id="param-monthly">
+            <label class="form-label">Bulan</label>
+            <input type="month" class="form-control" id="param-month">
+          </div>
+          <div class="form-group hidden" id="param-yearly">
+            <label class="form-label">Tahun</label>
+            <input type="number" class="form-control" id="param-year" placeholder="2026" min="2020" max="2099" style="width:100px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Karyawan</label>
+            <select class="form-control" id="filter-employee">
+              <option value="">Semua Karyawan</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="btn-filter">🔍 Tampilkan</button>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-row" id="summary-row" style="display:none;">
+          <div class="summary-chip" style="background:rgba(59,130,246,0.1);color:var(--primary);">📋 Total: <span id="sum-total">0</span></div>
+          <div class="summary-chip" style="background:rgba(16,185,129,0.1);color:var(--success);">✅ Hadir: <span id="sum-hadir">0</span></div>
+          <div class="summary-chip" style="background:rgba(245,158,11,0.1);color:var(--warning);">⏰ Terlambat: <span id="sum-terlambat">0</span></div>
+          <div class="summary-chip" style="background:rgba(239,68,68,0.1);color:var(--danger);">❌ Alpha: <span id="sum-alpha">0</span></div>
+          <div class="summary-chip" style="background:rgba(99,102,241,0.1);color:var(--secondary);">📅 Periode: <span id="sum-periode">-</span></div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama</th>
+                <th>Tanggal</th>
+                <th>Absen Masuk</th>
+                <th>Absen Keluar</th>
+                <th>Durasi</th>
+                <th>Status</th>
+                <th>Lokasi</th>
+              </tr>
+            </thead>
+            <tbody id="report-tbody">
+              <tr>
+                <td colspan="10" class="text-center text-muted" style="padding:48px;">
+                  Pilih periode dan klik "Tampilkan" untuk melihat data
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal peta lokasi -->
+  <div class="modal-backdrop" id="modal-map">
+    <div class="modal location-modal-content">
+      <div class="modal-header">
+        <h3 id="modal-map-title">📍 Lokasi Absen</h3>
+        <button class="modal-close" onclick="closeModal('modal-map')">✕</button>
+      </div>
+      <div id="loc-map" style="height:300px;border-radius:var(--radius);border:1px solid var(--border);"></div>
+      <div id="loc-detail" style="margin-top:12px;font-size:13px;color:var(--text-2);"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/laporan.js"></script>
+</body>
+</html>

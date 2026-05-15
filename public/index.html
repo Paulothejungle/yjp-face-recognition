@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — PT. Yudanta Jaya Putra</title>
+  <meta name="description" content="Dashboard Absensi PT. Yudanta Jaya Putra">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0f1e">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    .welcome-banner {
+      background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(99,102,241,0.15));
+      border: 1px solid rgba(59,130,246,0.3); border-radius: var(--radius-lg);
+      padding: 28px 32px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .welcome-text h1 { font-size: 24px; font-weight: 800; }
+    .welcome-text p { color: var(--text-2); margin-top: 4px; }
+    .clock-display { font-size: 22px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+
+    .attendance-table-row { cursor: pointer; }
+    .attendance-table-row:hover { background: rgba(59,130,246,0.08) !important; }
+
+    #today-map { height: 320px; }
+
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-header h2 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container">
+
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h1 id="welcome-msg">👋 Selamat Datang, Admin</h1>
+          <p>Pantau kehadiran karyawan PT. Yudanta Jaya Putra secara real-time</p>
+        </div>
+        <div>
+          <div class="clock-display" id="clock"></div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="card stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-info">
+            <div class="value text-primary" id="stat-total">-</div>
+            <div class="label">Total Karyawan</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <div class="value text-success" id="stat-hadir">-</div>
+            <div class="label">Hadir Tepat Waktu</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon yellow">⏰</div>
+          <div class="stat-info">
+            <div class="value text-warning" id="stat-terlambat">-</div>
+            <div class="label">Terlambat</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon red">❌</div>
+          <div class="stat-info">
+            <div class="value text-danger" id="stat-alpha">-</div>
+            <div class="label">Belum Absen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 column grid -->
+      <div class="grid-2" style="gap:24px;">
+
+        <!-- Absensi hari ini -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:20px 24px 0;" class="section-header">
+            <h2>📋 Absensi Hari Ini <span class="live-dot" style="margin-left:4px;"></span></h2>
+            <a href="/laporan.html" class="btn btn-ghost btn-sm">Lihat Semua →</a>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Karyawan</th>
+                  <th>Masuk</th>
+                  <th>Keluar</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="today-table">
+                <tr><td colspan="4" class="text-center text-muted" style="padding:32px;">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Peta lokasi -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:20px 24px 16px;" class="section-header">
+            <h2>📍 Lokasi Absen Hari Ini</h2>
+          </div>
+          <div id="today-map"></div>
+        </div>
+
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mt-6" style="padding:24px;">
+        <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;">⚡ Akses Cepat</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="/absensi.html" class="btn btn-primary">📸 Halaman Absensi</a>
+          <a href="/admin.html" class="btn btn-ghost">👥 Kelola Karyawan</a>
+          <a href="/laporan.html" class="btn btn-ghost">📊 Lihat Laporan</a>
+          <a href="/admin.html#pengaturan" class="btn btn-ghost">⚙️ Pengaturan</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/auth.js?v=2"></script>
+  <script>
+    if (!Auth.requireAdmin()) throw new Error('Not admin');
+    document.getElementById('navbar-container').innerHTML = renderNavbar('dashboard');
+    const user = Auth.getUser();
+    document.getElementById('welcome-msg').textContent = `👋 Selamat Datang, ${user?.name || 'Admin'}`;
+    startClock(document.getElementById('clock'));
+
+    let map = null;
+
+    async function loadDashboard() {
+      try {
+        const [data, settings] = await Promise.all([
+          Auth.apiCall('GET', '/api/attendance/today-summary'),
+          Auth.apiCall('GET', '/api/settings')
+        ]);
+
+        document.getElementById('stat-total').textContent = data.totalKaryawan;
+        document.getElementById('stat-hadir').textContent = data.hadir;
+        document.getElementById('stat-terlambat').textContent = data.terlambat;
+        document.getElementById('stat-alpha').textContent = data.alpha;
+
+        const tbody = document.getElementById('today-table');
+        if (!data.detail?.length) {
+          tbody.innerHTML = `<tr><td colspan="4" class="empty-state" style="padding:32px;text-align:center;color:var(--text-3);">Belum ada absensi hari ini</td></tr>`;
+        } else {
+          tbody.innerHTML = data.detail.map(row => {
+            const masuk = row.check_in ? new Date(row.check_in).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
+            const keluar = row.check_out ? new Date(row.check_out).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
+            const badgeClass = row.status === 'hadir' ? 'badge-success' : row.status === 'terlambat' ? 'badge-warning' : 'badge-danger';
+            const badgeText = row.status === 'hadir' ? 'Hadir' : row.status === 'terlambat' ? 'Terlambat' : 'Alpha';
+            return `<tr class="attendance-table-row">
+              <td>
+                <div style="font-weight:600;">${row.employees?.name || '-'}</div>
+              </td>
+              <td>${masuk}</td>
+              <td>${keluar}</td>
+              <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+            </tr>`;
+          }).join('');
+        }
+
+        // Map
+        renderMap(data.detail, settings);
+      } catch (err) {
+        showToast('error', 'Gagal memuat dashboard', err.message);
+      }
+    }
+
+    function renderMap(detail, settings) {
+      const lat = settings.office_lat || -6.2088;
+      const lng = settings.office_lng || 106.8456;
+      const rad = settings.radius_meters || 100;
+
+      if (!map) {
+        map = L.map('today-map').setView([lat, lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+      } else {
+        map.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Circle || l instanceof L.CircleMarker) map.removeLayer(l); });
+        map.setView([lat, lng], 16);
+      }
+
+      // Tampilkan radius kantor
+      L.circle([lat, lng], { radius: rad, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1 })
+        .bindPopup('Kantor Pusat (Radius Absen)')
+        .addTo(map);
+
+      const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+      const bounds = [[lat, lng]]; // Setidaknya map selalu mencakup kantor
+      detail?.forEach((row, i) => {
+        if (row.check_in_lat && row.check_in_lng) {
+          const color = colors[i % colors.length];
+          L.circleMarker([row.check_in_lat, row.check_in_lng], { radius: 10, color, fillColor: color, fillOpacity: 0.8, weight: 2 })
+            .bindPopup(`<b>${row.employees?.name}</b><br>Masuk: ${new Date(row.check_in).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'})}`)
+            .addTo(map);
+          bounds.push([row.check_in_lat, row.check_in_lng]);
+        }
+      });
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
+    }
+
+    loadDashboard();
+    setInterval(loadDashboard, 30000); // Refresh setiap 30 detik
+  </script>
+</body>
+</html>
