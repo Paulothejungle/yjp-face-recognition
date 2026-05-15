@@ -11,6 +11,17 @@ function formatDate(d) {
 function statusLabel(s) {
   return s === 'hadir' ? 'Hadir' : s === 'terlambat' ? 'Terlambat' : 'Alpha';
 }
+function hitungKeterlambatan(cin, status) {
+  if (status !== 'terlambat' || !cin) return '-';
+  const cinTime = new Date(cin);
+  const batasWaktu = new Date(cinTime);
+  batasWaktu.setHours(7, 30, 0, 0);
+  const diffMs = cinTime - batasWaktu;
+  if (diffMs <= 0) return '-';
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return `+${h > 0 ? `${h}j ` : ''}${m}m`;
+}
 
 function generateExcel(data, { filter, start, end }) {
   const filterLabel = { daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan' }[filter] || 'Kustom';
@@ -27,7 +38,7 @@ function generateExcel(data, { filter, start, end }) {
     [],
     [`Total: ${data.length}`, `Hadir: ${hadir}`, `Terlambat: ${terlambat}`, `Alpha: ${alpha}`],
     [],
-    ['No', 'Nama Karyawan', 'Tanggal', 'Jam Masuk', 'Jam Keluar', 'Durasi Kerja', 'Status', 'Lokasi Masuk', 'Lokasi Keluar'],
+    ['No', 'Nama Karyawan', 'Tanggal', 'Jam Masuk', 'Jam Keluar', 'Durasi Kerja', 'Status', 'Keterlambatan', 'Lokasi Masuk', 'Lokasi Keluar'],
   ];
 
   const rows = data.map((row, i) => {
@@ -49,6 +60,7 @@ function generateExcel(data, { filter, start, end }) {
       formatTime(row.check_out),
       durasi,
       statusLabel(row.status),
+      hitungKeterlambatan(row.check_in, row.status),
       lokasiMasuk,
       lokasiKeluar,
     ];
@@ -59,15 +71,15 @@ function generateExcel(data, { filter, start, end }) {
 
   // Column widths
   ws['!cols'] = [
-    { wch: 4 }, { wch: 22 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 4 }, { wch: 22 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
     { wch: 24 }, { wch: 24 }
   ];
 
   // Merge cells untuk header
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 8 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
   ];
 
   const wb = XLSX.utils.book_new();

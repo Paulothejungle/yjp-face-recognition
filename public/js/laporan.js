@@ -56,6 +56,17 @@ function statusBadge(s) {
   const label = { hadir: 'Hadir', terlambat: 'Terlambat', alpha: 'Alpha' };
   return `<span class="badge ${map[s] || ''}">${label[s] || s}</span>`;
 }
+function hitungKeterlambatan(cin, status) {
+  if (status !== 'terlambat' || !cin) return '<span class="text-muted" style="font-size:12px;">-</span>';
+  const cinTime = new Date(cin);
+  const batasWaktu = new Date(cinTime);
+  batasWaktu.setHours(7, 30, 0, 0); // Asumsi batas waktu 07:30
+  const diffMs = cinTime - batasWaktu;
+  if (diffMs <= 0) return '<span class="text-muted" style="font-size:12px;">-</span>';
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return `<span class="text-danger" style="font-size:12px; font-weight:600;">+${h > 0 ? `${h}j ` : ''}${m}m</span>`;
+}
 
 // ── Fetch & render
 let currentData = [];
@@ -87,7 +98,7 @@ async function fetchReport() {
     document.getElementById('sum-periode').textContent = `${fmtDate(res.start)} — ${fmtDate(res.end)}`;
 
     if (!currentData.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted" style="padding:48px;">Tidak ada data untuk periode ini</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted" style="padding:48px;">Tidak ada data untuk periode ini</td></tr>`;
       return;
     }
 
@@ -100,6 +111,7 @@ async function fetchReport() {
         <td>${fmt(row.check_out)}</td>
         <td>${durasi(row.check_in, row.check_out)}</td>
         <td>${statusBadge(row.status)}</td>
+        <td>${hitungKeterlambatan(row.check_in, row.status)}</td>
         <td>
           ${row.check_in_lat ? `<button onclick="showLocation(${i})" class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:12px;">📍 Lihat</button>` : '<span class="text-muted" style="font-size:12px;">-</span>'}
         </td>

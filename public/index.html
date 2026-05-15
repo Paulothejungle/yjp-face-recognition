@@ -99,10 +99,11 @@
                   <th>Masuk</th>
                   <th>Keluar</th>
                   <th>Status</th>
+                  <th>Terlambat</th>
                 </tr>
               </thead>
               <tbody id="today-table">
-                <tr><td colspan="4" class="text-center text-muted" style="padding:32px;">Memuat data...</td></tr>
+                <tr><td colspan="5" class="text-center text-muted" style="padding:32px;">Memuat data...</td></tr>
               </tbody>
             </table>
           </div>
@@ -141,6 +142,18 @@
     document.getElementById('welcome-msg').textContent = `👋 Selamat Datang, ${user?.name || 'Admin'}`;
     startClock(document.getElementById('clock'));
 
+    function hitungKeterlambatan(cin, status) {
+      if (status !== 'terlambat' || !cin) return '<span class="text-muted" style="font-size:12px;">-</span>';
+      const cinTime = new Date(cin);
+      const batasWaktu = new Date(cinTime);
+      batasWaktu.setHours(7, 30, 0, 0);
+      const diffMs = cinTime - batasWaktu;
+      if (diffMs <= 0) return '<span class="text-muted" style="font-size:12px;">-</span>';
+      const h = Math.floor(diffMs / 3600000);
+      const m = Math.floor((diffMs % 3600000) / 60000);
+      return `<span class="text-danger" style="font-size:12px; font-weight:600;">+${h > 0 ? `${h}j ` : ''}${m}m</span>`;
+    }
+
     let map = null;
 
     async function loadDashboard() {
@@ -157,7 +170,7 @@
 
         const tbody = document.getElementById('today-table');
         if (!data.detail?.length) {
-          tbody.innerHTML = `<tr><td colspan="4" class="empty-state" style="padding:32px;text-align:center;color:var(--text-3);">Belum ada absensi hari ini</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="empty-state" style="padding:32px;text-align:center;color:var(--text-3);">Belum ada absensi hari ini</td></tr>`;
         } else {
           tbody.innerHTML = data.detail.map(row => {
             const masuk = row.check_in ? new Date(row.check_in).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
@@ -171,6 +184,7 @@
               <td>${masuk}</td>
               <td>${keluar}</td>
               <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+              <td>${hitungKeterlambatan(row.check_in, row.status)}</td>
             </tr>`;
           }).join('');
         }

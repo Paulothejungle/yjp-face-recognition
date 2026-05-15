@@ -2,11 +2,11 @@ const PdfPrinter = require('pdfmake');
 const path = require('path');
 
 const fonts = {
-  Roboto: {
-    normal: path.join(__dirname, '../../node_modules/pdfmake/build/vfs_fonts.js'),
-    bold: path.join(__dirname, '../../node_modules/pdfmake/build/vfs_fonts.js'),
-    italics: path.join(__dirname, '../../node_modules/pdfmake/build/vfs_fonts.js'),
-    bolditalics: path.join(__dirname, '../../node_modules/pdfmake/build/vfs_fonts.js'),
+  Helvetica: {
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique'
   }
 };
 
@@ -23,6 +23,17 @@ function statusLabel(s) {
 }
 function statusColor(s) {
   return s === 'hadir' ? '#16a34a' : s === 'terlambat' ? '#d97706' : '#dc2626';
+}
+function hitungKeterlambatan(cin, status) {
+  if (status !== 'terlambat' || !cin) return '-';
+  const cinTime = new Date(cin);
+  const batasWaktu = new Date(cinTime);
+  batasWaktu.setHours(7, 30, 0, 0);
+  const diffMs = cinTime - batasWaktu;
+  if (diffMs <= 0) return '-';
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return `+${h > 0 ? `${h}j ` : ''}${m}m`;
 }
 
 async function generatePDF(data, { filter, start, end }) {
@@ -43,6 +54,7 @@ async function generatePDF(data, { filter, start, end }) {
           { text: 'Masuk', style: 'tableHeader' },
           { text: 'Keluar', style: 'tableHeader' },
           { text: 'Status', style: 'tableHeader' },
+          { text: 'Terlambat', style: 'tableHeader' },
         ],
         ...data.map((row, i) => [
           { text: i + 1, alignment: 'center' },
@@ -51,6 +63,7 @@ async function generatePDF(data, { filter, start, end }) {
           { text: formatTime(row.check_in), alignment: 'center' },
           { text: formatTime(row.check_out), alignment: 'center' },
           { text: statusLabel(row.status), color: statusColor(row.status), bold: true, alignment: 'center', fontSize: 9 },
+          { text: hitungKeterlambatan(row.check_in, row.status), color: '#dc2626', alignment: 'center', fontSize: 9 },
         ])
       ];
 
@@ -58,6 +71,9 @@ async function generatePDF(data, { filter, start, end }) {
         pageSize: 'A4',
         pageOrientation: 'landscape',
         pageMargins: [30, 50, 30, 40],
+        defaultStyle: {
+          font: 'Helvetica'
+        },
         content: [
           { text: 'PT. YUDANTA JAYA PUTRA', style: 'company' },
           { text: `LAPORAN ABSENSI KARYAWAN — ${filterLabel.toUpperCase()}`, style: 'title' },
@@ -75,7 +91,7 @@ async function generatePDF(data, { filter, start, end }) {
           {
             table: {
               headerRows: 1,
-              widths: [25, '*', 120, 60, 60, 60],
+              widths: [25, '*', 100, 60, 60, 60, 60],
               body: tableBody
             },
             layout: {
