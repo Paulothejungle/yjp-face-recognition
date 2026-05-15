@@ -27,11 +27,23 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 window.closeModal = closeModal;
 document.getElementById('close-modal-add').addEventListener('click', () => closeModal('modal-add-emp'));
+document.getElementById('btn-close-modal-cancel').addEventListener('click', () => closeModal('modal-add-emp'));
 
 // ============================================================
 // TAB: KARYAWAN
 // ============================================================
 let employees = [];
+
+document.getElementById('employee-grid').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === 'enroll') {
+    goToEnrollment(btn.dataset.id);
+  } else if (action === 'reset-face') {
+    resetFace(btn.dataset.id, btn.dataset.name);
+  }
+});
 
 async function loadEmployees() {
   try {
@@ -63,8 +75,8 @@ async function loadEmployees() {
           <div style="font-size:16px;font-weight:700;">${emp.name}</div>
           <div class="text-xs" style="color:var(--text-3);margin-top:4px;">${emp.email}</div>
           <div class="emp-actions">
-            <button onclick="goToEnrollment('${emp.id}')" class="btn btn-primary btn-sm flex-1">📸 Daftar Wajah</button>
-            <button onclick="deleteEmployee('${emp.id}', '${emp.name}')" class="btn btn-danger btn-sm">🗑️</button>
+            <button data-action="enroll" data-id="${emp.id}" class="btn btn-primary btn-sm flex-1">📸 Daftar Wajah</button>
+            <button data-action="reset-face" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm">🗑️</button>
           </div>
         </div>
       `;
@@ -74,17 +86,17 @@ async function loadEmployees() {
   }
 }
 
-async function deleteEmployee(id, name) {
-  if (!confirm(`Hapus karyawan "${name}"? Data absensi tidak akan dihapus.`)) return;
+async function resetFace(id, name) {
+  if (!confirm(`Reset data wajah untuk karyawan "${name}"? Statusnya akan kembali menjadi Belum Enroll.`)) return;
   try {
-    await Auth.apiCall('DELETE', `/api/employees/${id}`);
-    showToast('success', 'Berhasil', `Karyawan ${name} dihapus`);
+    await Auth.apiCall('DELETE', `/api/employees/${id}/face`);
+    showToast('success', 'Berhasil', `Data wajah ${name} telah direset`);
     loadEmployees();
   } catch (err) {
-    showToast('error', 'Gagal menghapus', err.message);
+    showToast('error', 'Gagal mereset wajah', err.message);
   }
 }
-window.deleteEmployee = deleteEmployee;
+window.resetFace = resetFace;
 
 function goToEnrollment(id) {
   document.querySelector('[data-tab="enrollment"]').click();

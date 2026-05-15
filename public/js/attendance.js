@@ -79,6 +79,9 @@ function showOverlay(type, icon, title, msg) {
   overlay.style.background = type === 'success'
     ? 'rgba(0,20,0,0.92)'
     : 'rgba(30,0,0,0.92)';
+  const reloadBtn = document.getElementById('btn-reload');
+  if (reloadBtn) reloadBtn.addEventListener('click', () => location.reload());
+
   if (type === 'success') {
     setTimeout(() => {
       overlay.classList.add('hidden');
@@ -192,7 +195,7 @@ async function init() {
       <div style="font-size:40px;margin-bottom:16px;">❌</div>
       <p style="font-weight:600;color:var(--danger);">Gagal Memuat</p>
       <p class="text-sm text-muted" style="margin-top:8px;">${err.message}</p>
-      <button onclick="location.reload()" class="btn btn-primary btn-sm" style="margin-top:16px;">Coba Lagi</button>
+      <button id="btn-reload" class="btn btn-primary btn-sm" style="margin-top:16px;">Coba Lagi</button>
     `;
   }
 }

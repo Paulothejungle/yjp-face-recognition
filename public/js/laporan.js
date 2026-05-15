@@ -113,7 +113,7 @@ async function fetchReport() {
         <td>${statusBadge(row.status)}</td>
         <td>${hitungKeterlambatan(row.check_in, row.status)}</td>
         <td>
-          ${row.check_in_lat ? `<button onclick="showLocation(${i})" class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:12px;">📍 Lihat</button>` : '<span class="text-muted" style="font-size:12px;">-</span>'}
+          ${row.check_in_lat ? `<button data-action="show-location" data-index="${i}" class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:12px;">📍 Lihat</button>` : '<span class="text-muted" style="font-size:12px;">-</span>'}
         </td>
       </tr>
     `).join('');
@@ -123,6 +123,14 @@ async function fetchReport() {
 }
 
 document.getElementById('btn-filter').addEventListener('click', fetchReport);
+
+document.getElementById('report-tbody').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.dataset.action === 'show-location') {
+    showLocation(parseInt(btn.dataset.index, 10));
+  }
+});
 
 // ── Peta Lokasi
 let locMap = null;
@@ -161,7 +169,10 @@ window.showLocation = function(idx) {
     }
   }, 100);
 };
-window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+
+document.getElementById('btn-close-modal-map').addEventListener('click', () => {
+  document.getElementById('modal-map').classList.remove('open');
+});
 
 // ── Export PDF
 document.getElementById('btn-pdf').addEventListener('click', async () => {
