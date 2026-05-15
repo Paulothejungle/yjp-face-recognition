@@ -63,7 +63,7 @@ async function loadEmployees() {
           <div style="font-size:16px;font-weight:700;">${emp.name}</div>
           <div class="text-xs" style="color:var(--text-3);margin-top:4px;">${emp.email}</div>
           <div class="emp-actions">
-            <button onclick="goToEnrollment('${emp.id}')" class="btn btn-primary btn-sm flex-1">📸 Enroll Wajah</button>
+            <button onclick="goToEnrollment('${emp.id}')" class="btn btn-primary btn-sm flex-1">📸 Daftar Wajah</button>
             <button onclick="deleteEmployee('${emp.id}', '${emp.name}')" class="btn btn-danger btn-sm">🗑️</button>
           </div>
         </div>
@@ -111,7 +111,7 @@ document.getElementById('form-add-emp').addEventListener('submit', async (e) => 
       email: document.getElementById('inp-email').value,
       password: document.getElementById('inp-password').value,
     });
-    showToast('success', 'Karyawan ditambahkan', 'Selanjutnya lakukan enrollment wajah');
+    showToast('success', 'Karyawan ditambahkan', 'Selanjutnya lakukan pendaftaran wajah');
     closeModal('modal-add-emp');
     document.getElementById('form-add-emp').reset();
     loadEmployees();
