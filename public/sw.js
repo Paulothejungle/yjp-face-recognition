@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yjp-absensi-v3';
+const CACHE_NAME = 'yjp-absensi-v4';
 const STATIC_ASSETS = [
   '/login.html',
   '/css/style.css',
