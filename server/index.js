@@ -24,7 +24,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "unpkg.com"],
       fontSrc: ["'self'", "fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "*.supabase.co", "tile.openstreetmap.org", "*.tile.openstreetmap.org"],
-      connectSrc: ["'self'", "*.supabase.co"],
+      connectSrc: ["'self'", "*.supabase.co", "unpkg.com"],
       mediaSrc: ["'self'", "blob:"],
       workerSrc: ["'self'", "blob:"],
     },
