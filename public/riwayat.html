@@ -12,11 +12,24 @@
     .riwayat-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: var(--transition); }
     .riwayat-card:hover { background: rgba(59,130,246,0.05); }
     .riwayat-card:last-child { border-bottom: none; }
-    .date-col { min-width: 120px; }
-    .time-col { display: flex; gap: 20px; flex: 1; }
-    .time-item { display: flex; flex-direction: column; }
+    .date-col { min-width: 110px; }
+    .time-col { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; }
+    .time-item { display: flex; flex-direction: column; min-width: 52px; }
     .time-item .label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
     .time-item .value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .absence-card { display: flex; align-items: flex-start; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--border); transition: var(--transition); }
+    .absence-card:hover { background: rgba(59,130,246,0.04); }
+    .absence-card:last-child { border-bottom: none; }
+    .absence-type-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+
+    @media (max-width: 480px) {
+      .riwayat-card { gap: 10px; padding: 12px 14px; flex-wrap: wrap; }
+      .date-col { min-width: 80px; }
+      .time-col { gap: 10px; }
+      .time-item .value { font-size: 13px; }
+      .absence-card { padding: 12px 14px; gap: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -31,7 +44,7 @@
       </div>
 
       <!-- Mini Stats -->
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;" id="mini-stats">
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));margin-bottom:24px;" id="mini-stats">
         <div class="card stat-card card-sm">
           <div class="stat-icon green">✅</div>
           <div class="stat-info">
@@ -47,10 +60,24 @@
           </div>
         </div>
         <div class="card stat-card card-sm">
+          <div class="stat-icon" style="background:rgba(99,102,241,0.15);">🏠</div>
+          <div class="stat-info">
+            <div class="value" style="color:#6366f1;" id="rs-izin">-</div>
+            <div class="label">Izin</div>
+          </div>
+        </div>
+        <div class="card stat-card card-sm">
+          <div class="stat-icon" style="background:rgba(6,182,212,0.15);">🤒</div>
+          <div class="stat-info">
+            <div class="value" style="color:#06b6d4;" id="rs-sakit">-</div>
+            <div class="label">Sakit</div>
+          </div>
+        </div>
+        <div class="card stat-card card-sm">
           <div class="stat-icon red">❌</div>
           <div class="stat-info">
             <div class="value text-danger" id="rs-alpha">-</div>
-            <div class="label">Alpha</div>
+            <div class="label">Alpa</div>
           </div>
         </div>
       </div>
@@ -70,6 +97,17 @@
             <div class="spinner" style="margin:0 auto 16px;"></div>
             Memuat riwayat...
           </div>
+        </div>
+      </div>
+
+      <!-- Riwayat Izin/Sakit -->
+      <div class="card" style="padding:0;overflow:hidden;margin-top:20px;" id="absence-section">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;">📋 Riwayat Izin &amp; Ketidakhadiran</h2>
+          <a href="/izin.html" class="btn btn-ghost btn-sm" style="font-size:12px;">+ Ajukan Izin</a>
+        </div>
+        <div id="absence-list">
+          <div class="text-center text-muted" style="padding:32px;font-size:13px;">Memuat...</div>
         </div>
       </div>
 
@@ -108,46 +146,110 @@
       const end = new Date(y, m, 0).toISOString().split('T')[0];
 
       const list = document.getElementById('riwayat-list');
+      const absenceList = document.getElementById('absence-list');
       list.innerHTML = `<div class="text-center" style="padding:32px;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+      absenceList.innerHTML = `<div class="text-center text-muted" style="padding:24px;font-size:13px;"><div class="spinner" style="margin:0 auto 8px;"></div>Memuat...</div>`;
 
       try {
-        const data = await Auth.apiCall('GET', `/api/attendance/me?start_date=${start}&end_date=${end}`);
+        const [data, absences] = await Promise.all([
+          Auth.apiCall('GET', `/api/attendance/me?start_date=${start}&end_date=${end}`),
+          Auth.apiCall('GET', '/api/absences')
+        ]);
 
-        document.getElementById('rs-hadir').textContent = data.filter(r=>r.status==='hadir').length;
-        document.getElementById('rs-terlambat').textContent = data.filter(r=>r.status==='terlambat').length;
-        document.getElementById('rs-alpha').textContent = data.filter(r=>r.status==='alpha').length;
+        // Filter absences untuk bulan yang dipilih
+        const monthAbsences = absences.filter(a => a.date >= start && a.date <= end);
 
+        // Update stats
+        document.getElementById('rs-hadir').textContent = data.filter(r => r.status === 'hadir').length;
+        document.getElementById('rs-terlambat').textContent = data.filter(r => r.status === 'terlambat').length;
+        document.getElementById('rs-izin').textContent = monthAbsences.filter(a => a.type === 'izin').length;
+        document.getElementById('rs-sakit').textContent = monthAbsences.filter(a => a.type === 'sakit').length;
+        document.getElementById('rs-alpha').textContent = monthAbsences.filter(a => a.type === 'alpa').length;
+
+        // Riwayat absensi harian
         if (!data.length) {
           list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><h3>Tidak ada data</h3><p>Tidak ada rekap absensi untuk bulan ini</p></div>`;
-          return;
+        } else {
+          list.innerHTML = data.map(row => `
+            <div class="riwayat-card">
+              <div class="date-col">
+                <div style="font-weight:700;">${fmtDate(row.date)}</div>
+                <div style="font-size:12px;color:var(--text-3);">${new Date(row.date).getFullYear()}</div>
+              </div>
+              <div class="time-col">
+                <div class="time-item">
+                  <span class="label">Masuk</span>
+                  <span class="value" style="color:${row.check_in ? 'var(--success)' : 'var(--text-3)'}">${fmt(row.check_in)}</span>
+                </div>
+                <div class="time-item">
+                  <span class="label">Keluar</span>
+                  <span class="value" style="color:${row.check_out ? 'var(--primary)' : 'var(--text-3)'}">${fmt(row.check_out)}</span>
+                </div>
+                <div class="time-item">
+                  <span class="label">Durasi</span>
+                  <span class="value">${durasi(row.check_in, row.check_out)}</span>
+                </div>
+              </div>
+              <div>${statusBadge(row.status)}</div>
+            </div>
+          `).join('');
         }
 
-        list.innerHTML = data.map(row => `
-          <div class="riwayat-card">
-            <div class="date-col">
-              <div style="font-weight:700;">${fmtDate(row.date)}</div>
-              <div style="font-size:12px;color:var(--text-3);">${new Date(row.date).getFullYear()}</div>
-            </div>
-            <div class="time-col">
-              <div class="time-item">
-                <span class="label">Masuk</span>
-                <span class="value" style="color:${row.check_in ? 'var(--success)' : 'var(--text-3)'};">${fmt(row.check_in)}</span>
+        // Riwayat izin/sakit/alpa
+        if (!monthAbsences.length) {
+          absenceList.innerHTML = `<div style="text-align:center;padding:28px;color:var(--text-3);font-size:13px;">📭 Tidak ada pengajuan izin/sakit bulan ini</div>`;
+        } else {
+          const typeConfig = {
+            izin:  { icon: '🏠', label: 'Izin',  bg: 'rgba(99,102,241,0.12)',  color: '#6366f1'  },
+            sakit: { icon: '🤒', label: 'Sakit', bg: 'rgba(6,182,212,0.12)',   color: '#06b6d4'  },
+            alpa:  { icon: '⛔', label: 'Alpa',  bg: 'rgba(239,68,68,0.12)',   color: '#ef4444'  }
+          };
+          const statusMap = {
+            pending:  { label: 'Menunggu Konfirmasi', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)'  },
+            approved: { label: 'Disetujui',           color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+            rejected: { label: 'Ditolak',             color: '#ef4444', bg: 'rgba(239,68,68,0.1)',  border: 'rgba(239,68,68,0.3)'  }
+          };
+
+          absenceList.innerHTML = monthAbsences.map(item => {
+            const tc = typeConfig[item.type] || typeConfig.alpa;
+            const sc = statusMap[item.status] || statusMap.pending;
+            const dateStr = new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+            return `
+            <div class="absence-card">
+              <div class="absence-type-icon" style="background:${tc.bg};">${tc.icon}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="font-weight:700;font-size:14px;color:${tc.color};">${tc.label}</span>
+                  <span style="font-size:12px;color:var(--text-3);">${dateStr}</span>
+                </div>
+                ${item.reason ? `<p style="font-size:13px;color:var(--text-2);margin-top:4px;">${item.reason}</p>` : ''}
+                ${item.admin_note ? `<div style="font-size:12px;color:var(--text-3);margin-top:4px;background:var(--bg-3);padding:4px 10px;border-radius:6px;">💬 ${item.admin_note}</div>` : ''}
               </div>
-              <div class="time-item">
-                <span class="label">Keluar</span>
-                <span class="value" style="color:${row.check_out ? 'var(--primary)' : 'var(--text-3)'};">${fmt(row.check_out)}</span>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+                <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border};white-space:nowrap;">${sc.label}</span>
+                ${item.photo_url ? `<button onclick="showPhoto('${item.id}')" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--primary);padding:3px 10px;border-radius:8px;cursor:pointer;font-size:11px;">👁️ Foto</button>` : ''}
               </div>
-              <div class="time-item">
-                <span class="label">Durasi</span>
-                <span class="value">${durasi(row.check_in, row.check_out)}</span>
-              </div>
-            </div>
-            <div>${statusBadge(row.status)}</div>
-          </div>
-        `).join('');
+            </div>`;
+          }).join('');
+
+          // Simpan untuk modal foto
+          window._absences = monthAbsences;
+        }
+
       } catch (err) {
         list.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>Gagal memuat</h3><p>${err.message}</p></div>`;
+        absenceList.innerHTML = `<div style="color:#ef4444;font-size:13px;padding:16px;">${err.message}</div>`;
       }
+    }
+
+    function showPhoto(id) {
+      const item = (window._absences || []).find(a => a.id === id);
+      if (!item?.photo_url) return;
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+      modal.innerHTML = `<img src="${item.photo_url}" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;">`;
+      modal.onclick = () => document.body.removeChild(modal);
+      document.body.appendChild(modal);
     }
 
     document.getElementById('btn-load-riwayat').addEventListener('click', loadRiwayat);
