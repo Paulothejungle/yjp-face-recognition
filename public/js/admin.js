@@ -42,6 +42,10 @@ document.getElementById('employee-grid').addEventListener('click', (e) => {
     goToEnrollment(btn.dataset.id);
   } else if (action === 'reset-face') {
     resetFace(btn.dataset.id, btn.dataset.name);
+  } else if (action === 'edit') {
+    openEditEmployee(btn.dataset.id, btn.dataset.name, btn.dataset.email);
+  } else if (action === 'delete') {
+    deleteEmployee(btn.dataset.id, btn.dataset.name);
   }
 });
 
@@ -76,7 +80,9 @@ async function loadEmployees() {
           <div class="text-xs" style="color:var(--text-3);margin-top:4px;">${emp.email}</div>
           <div class="emp-actions">
             <button data-action="enroll" data-id="${emp.id}" class="btn btn-primary btn-sm flex-1">📸 Daftar Wajah</button>
-            <button data-action="reset-face" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm">🗑️</button>
+            <button data-action="edit" data-id="${emp.id}" data-name="${emp.name}" data-email="${emp.email}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
+            <button data-action="reset-face" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm" title="Reset Wajah" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#f59e0b;">🔄</button>
+            <button data-action="delete" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm" title="Nonaktifkan Karyawan">🗑️</button>
           </div>
         </div>
       `;
@@ -97,6 +103,41 @@ async function resetFace(id, name) {
   }
 }
 window.resetFace = resetFace;
+
+async function deleteEmployee(id, name) {
+  if (!confirm(`Nonaktifkan karyawan "${name}"?\nAkun mereka tidak bisa login, tapi data absensi tetap tersimpan.`)) return;
+  try {
+    await Auth.apiCall('DELETE', `/api/employees/${id}`);
+    showToast('success', 'Berhasil', `Karyawan ${name} telah dinonaktifkan`);
+    loadEmployees();
+  } catch (err) {
+    showToast('error', 'Gagal menonaktifkan', err.message);
+  }
+}
+
+// ── Modal Edit Karyawan
+let editingEmpId = null;
+function openEditEmployee(id, name, email) {
+  editingEmpId = id;
+  document.getElementById('edit-emp-name').value = name;
+  document.getElementById('edit-emp-email').value = email;
+  document.getElementById('modal-edit-emp').classList.add('open');
+}
+document.getElementById('close-modal-edit').addEventListener('click', () => document.getElementById('modal-edit-emp').classList.remove('open'));
+document.getElementById('btn-cancel-edit').addEventListener('click', () => document.getElementById('modal-edit-emp').classList.remove('open'));
+document.getElementById('form-edit-emp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('edit-emp-name').value.trim();
+  if (!name || !editingEmpId) return;
+  try {
+    await Auth.apiCall('PUT', `/api/employees/${editingEmpId}`, { name });
+    showToast('success', 'Berhasil', 'Data karyawan diperbarui');
+    document.getElementById('modal-edit-emp').classList.remove('open');
+    loadEmployees();
+  } catch (err) {
+    showToast('error', 'Gagal memperbarui', err.message);
+  }
+});
 
 function goToEnrollment(id) {
   document.querySelector('[data-tab="enrollment"]').click();

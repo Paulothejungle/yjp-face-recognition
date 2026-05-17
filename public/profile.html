@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil — PT. Yudanta Jaya Putra</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/assets/yjp1.jpg" type="image/jpeg">
+  <meta name="theme-color" content="#0a0f1e">
+  <script>
+    if (!localStorage.getItem('yjp_token')) { window.location.replace('/login.html'); }
+  </script>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .profile-layout { max-width: 520px; margin: 0 auto; }
+
+    .profile-photo-section {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 24px 32px; gap: 16px;
+    }
+
+    .photo-wrapper {
+      position: relative; width: 120px; height: 120px;
+    }
+    .photo-avatar {
+      width: 120px; height: 120px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; font-weight: 800; color: white;
+      border: 4px solid var(--border-active); overflow: hidden;
+      object-fit: cover;
+    }
+    .photo-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .photo-edit-btn {
+      position: absolute; bottom: 4px; right: 4px;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--primary); border: 2px solid var(--bg-1);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; transition: var(--transition);
+    }
+    .photo-edit-btn:hover { background: var(--secondary); transform: scale(1.1); }
+
+    .profile-name { font-size: 20px; font-weight: 800; }
+    .profile-role {
+      font-size: 12px; padding: 4px 12px; border-radius: 99px;
+      background: rgba(59,130,246,0.15); color: var(--primary);
+      font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    .upload-progress {
+      display: none; width: 100%; max-width: 300px;
+      height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden;
+    }
+    .upload-progress-bar {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 3px; animation: progressPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes progressPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div id="navbar-container"></div>
+
+  <main class="main">
+    <div class="container">
+      <div class="page-header">
+        <h1>👤 Profil Saya</h1>
+        <p>Kelola informasi akun dan foto profil Anda</p>
+      </div>
+
+      <div class="profile-layout">
+        <!-- Foto Profil -->
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px;">
+          <div class="profile-photo-section">
+            <div class="photo-wrapper">
+              <div class="photo-avatar" id="photo-avatar">
+                <span id="avatar-initial">?</span>
+              </div>
+              <label class="photo-edit-btn" for="photo-input" title="Ganti Foto">📷</label>
+              <input type="file" id="photo-input" accept="image/*" style="display:none;">
+            </div>
+            <div class="upload-progress" id="upload-progress">
+              <div class="upload-progress-bar"></div>
+            </div>
+            <div id="profile-name" class="profile-name">Memuat...</div>
+            <div id="profile-role" class="profile-role">—</div>
+          </div>
+        </div>
+
+        <!-- Form Edit Nama -->
+        <div class="card">
+          <h2 style="font-size:15px;font-weight:700;margin-bottom:20px;">📝 Informasi Akun</h2>
+          <form id="form-profile">
+            <div class="form-group">
+              <label class="form-label">Nama Lengkap</label>
+              <input type="text" class="form-control" id="inp-profile-name" placeholder="Nama Anda" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="inp-profile-email" disabled style="opacity:0.5;cursor:not-allowed;">
+              <p class="text-xs" style="color:var(--text-3);margin-top:4px;">Email tidak dapat diubah</p>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-save-profile">💾 Simpan Perubahan</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth.js?v=2"></script>
+  <script src="/js/profile.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

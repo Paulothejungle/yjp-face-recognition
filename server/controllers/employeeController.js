@@ -127,4 +127,30 @@ async function update(req, res) {
   }
 }
 
-module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, resetFace, update };
+/** DELETE /api/employees/:id — soft delete: nonaktifkan akun */
+async function remove(req, res) {
+  const { id } = req.params;
+  try {
+    // Nonaktifkan di tabel employees
+    const { data: emp, error: empError } = await supabaseAdmin
+      .from('employees')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select('email')
+      .single();
+    if (empError) throw empError;
+
+    // Nonaktifkan user di Supabase Auth (ban user)
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+    const authUser = users?.users?.find(u => u.email === emp.email);
+    if (authUser) {
+      await supabaseAdmin.auth.admin.updateUserById(authUser.id, { ban_duration: '876600h' });
+    }
+
+    return res.json({ message: 'Karyawan berhasil dinonaktifkan' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, resetFace, update, remove };

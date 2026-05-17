@@ -169,13 +169,15 @@ function renderNavbar(activePage) {
         </a>` : ''}
       </div>
       <div class="navbar-user" style="display:flex;align-items:center;gap:12px;">
-        <div style="text-align:right;display:none;" class="user-info-text" id="nav-user-info">
-          <div style="font-size:13px;font-weight:600;">${user?.name || 'User'}</div>
-          <div style="font-size:11px;color:var(--text-3);">${role === 'admin' ? '👑 Admin' : '👤 Karyawan'}</div>
-        </div>
-        <div class="user-avatar" title="${user?.name}" style="cursor:default;">
-          ${user?.photo_url ? `<img src="${user.photo_url}" alt="${user.name}">` : initial}
-        </div>
+        <a href="/profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Lihat Profil">
+          <div style="text-align:right;" class="user-info-text">
+            <div style="font-size:13px;font-weight:600;">${user?.name || 'User'}</div>
+            <div style="font-size:11px;color:var(--text-3);">${role === 'admin' ? '👑 Admin' : '👤 Karyawan'}</div>
+          </div>
+          <div class="user-avatar" title="Profil" style="cursor:pointer;border:2px solid var(--border-active);">
+            ${user?.photo_url ? `<img src="${user.photo_url}" alt="${user.name}">` : initial}
+          </div>
+        </a>
         <button type="button" id="nav-btn-logout" class="btn btn-ghost btn-sm" style="padding:6px 12px;color:#ef4444;border-color:var(--border);display:flex;align-items:center;gap:6px;">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
