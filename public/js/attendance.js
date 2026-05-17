@@ -111,6 +111,13 @@ const livenessStatus  = () => document.getElementById('liveness-status');
 const livenessRetry   = () => document.getElementById('liveness-retry-btn');
 const timerBar        = () => document.getElementById('liveness-timer-bar');
 
+// Sambungkan tombol retry via addEventListener (lebih reliable daripada onclick)
+document.getElementById('liveness-retry-btn').addEventListener('click', () => {
+  if (typeof window._livenessRetry === 'function') {
+    window._livenessRetry();
+  }
+});
+
 function showLiveness(challenge) {
   livenessIcon().textContent  = challenge.icon;
   livenessText().textContent  = challenge.text;
@@ -150,14 +157,23 @@ function setLivenessFail(msg) {
 }
 
 // Jalankan liveness challenge + retry jika gagal
-// Returns true jika berhasil, false jika user batal
 function runLivenessFlow(match) {
   return new Promise(resolve => {
     const attempt = async () => {
       const challenge = Liveness.random();
-      showLiveness(challenge);
 
-      const result = await Liveness.runChallenge(videoEl, challenge.id, 6000);
+      // Karena kamera sudah di-unmirrored (scaleX(-1)), swap arah left/right:
+      // user's LEFT di layar = kamera arah KANAN (dx > 0)
+      // user's RIGHT di layar = kamera arah KIRI  (dx < 0)
+      const displayChallenge = {
+        ...challenge,
+        id: challenge.id === 'left'  ? 'right' :
+            challenge.id === 'right' ? 'left'  : challenge.id
+      };
+
+      showLiveness(challenge); // tampilkan teks asli (Kiri/Kanan sesuai yang user lihat)
+
+      const result = await Liveness.runChallenge(videoEl, displayChallenge.id, 6000);
 
       if (result.passed) {
         setLivenessSuccess();
@@ -166,7 +182,6 @@ function runLivenessFlow(match) {
         resolve(true);
       } else {
         setLivenessFail('Waktu habis. Tekan tombol di bawah untuk coba tantangan baru.');
-        // Beri tombol retry
         window._livenessRetry = () => {
           window._livenessRetry = null;
           timerBar().style.background = 'linear-gradient(90deg, var(--primary), #818cf8)';
