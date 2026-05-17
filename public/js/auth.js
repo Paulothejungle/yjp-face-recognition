@@ -154,7 +154,7 @@ function renderNavbar(activePage) {
   return `
     <nav class="navbar">
       <a href="${role === 'admin' ? '/index.html' : '/absensi.html'}" class="navbar-brand">
-        <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:white;">Y</div>
+        <img src="/assets/yjp1.jpg" alt="Logo YJP" style="width:36px;height:36px;border-radius:8px;object-fit:cover;background:transparent;">
         <div class="navbar-brand-text">
           <span class="company">PT. YUDANTA JAYA PUTRA</span>
           <span class="tagline">SISTEM ABSENSI</span>
