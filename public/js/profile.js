@@ -122,4 +122,32 @@ document.getElementById('form-profile').addEventListener('submit', async (e) => 
   }
 });
 
+// ── Ganti password
+document.getElementById('form-change-password').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const currentPassword = document.getElementById('inp-current-password').value;
+  const newPassword = document.getElementById('inp-new-password').value;
+  const confirmPassword = document.getElementById('inp-confirm-password').value;
+
+  if (newPassword !== confirmPassword) {
+    showToast('warning', 'Password tidak cocok', 'Konfirmasi password baru tidak sesuai');
+    return;
+  }
+
+  const btn = document.getElementById('btn-change-password');
+  btn.textContent = 'Memproses...';
+  btn.disabled = true;
+
+  try {
+    await Auth.apiCall('PUT', '/api/profile/me/password', { currentPassword, newPassword });
+    showToast('success', 'Password berhasil diubah', 'Silakan login ulang jika diminta');
+    document.getElementById('form-change-password').reset();
+  } catch (err) {
+    showToast('error', 'Gagal mengubah password', err.message);
+  } finally {
+    btn.textContent = '🔐 Ubah Password';
+    btn.disabled = false;
+  }
+});
+
 loadProfile();

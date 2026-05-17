@@ -105,6 +105,26 @@
             <button type="submit" class="btn btn-primary btn-block" id="btn-save-profile">💾 Simpan Perubahan</button>
           </form>
         </div>
+
+        <!-- Ganti Password -->
+        <div class="card" style="margin-top:24px;">
+          <h2 style="font-size:15px;font-weight:700;margin-bottom:20px;">🔐 Ganti Password</h2>
+          <form id="form-change-password">
+            <div class="form-group">
+              <label class="form-label">Password Lama</label>
+              <input type="password" class="form-control" id="inp-current-password" placeholder="Password saat ini" required minlength="8">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password Baru</label>
+              <input type="password" class="form-control" id="inp-new-password" placeholder="Min. 8 karakter" required minlength="8">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Konfirmasi Password Baru</label>
+              <input type="password" class="form-control" id="inp-confirm-password" placeholder="Ulangi password baru" required minlength="8">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="btn-change-password">🔐 Ubah Password</button>
+          </form>
+        </div>
       </div>
     </div>
   </main>

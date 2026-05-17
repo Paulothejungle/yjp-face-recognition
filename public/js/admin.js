@@ -79,7 +79,9 @@ async function loadEmployees() {
           <div style="font-size:16px;font-weight:700;">${emp.name}</div>
           <div class="text-xs" style="color:var(--text-3);margin-top:4px;">${emp.email}</div>
           <div class="emp-actions">
-            <button data-action="enroll" data-id="${emp.id}" class="btn btn-primary btn-sm flex-1">📸 Daftar Wajah</button>
+            <button data-action="enroll" data-id="${emp.id}" class="btn btn-primary btn-sm flex-1" title="Daftar Wajah">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Wajah
+            </button>
             <button data-action="edit" data-id="${emp.id}" data-name="${emp.name}" data-email="${emp.email}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
             <button data-action="reset-face" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm" title="Reset Wajah" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#f59e0b;">🔄</button>
             <button data-action="delete" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm" title="Nonaktifkan Karyawan">🗑️</button>
@@ -128,11 +130,35 @@ document.getElementById('btn-cancel-edit').addEventListener('click', () => docum
 document.getElementById('form-edit-emp').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('edit-emp-name').value.trim();
+  const newPassword = document.getElementById('edit-emp-password').value;
+  const confirmPassword = document.getElementById('edit-emp-password-confirm').value;
   if (!name || !editingEmpId) return;
+
+  // Validasi password jika diisi
+  if (newPassword || confirmPassword) {
+    if (newPassword.length < 8) {
+      showToast('warning', 'Password terlalu pendek', 'Minimal 8 karakter');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('warning', 'Password tidak cocok', 'Konfirmasi password tidak sesuai');
+      return;
+    }
+  }
+
   try {
+    // Update nama
     await Auth.apiCall('PUT', `/api/employees/${editingEmpId}`, { name });
+
+    // Update password jika diisi
+    if (newPassword) {
+      await Auth.apiCall('PUT', `/api/employees/${editingEmpId}/password`, { newPassword });
+    }
+
     showToast('success', 'Berhasil', 'Data karyawan diperbarui');
     document.getElementById('modal-edit-emp').classList.remove('open');
+    document.getElementById('edit-emp-password').value = '';
+    document.getElementById('edit-emp-password-confirm').value = '';
     loadEmployees();
   } catch (err) {
     showToast('error', 'Gagal memperbarui', err.message);

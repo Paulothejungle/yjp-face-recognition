@@ -192,6 +192,17 @@
           <input type="email" class="form-control" id="edit-emp-email" disabled style="opacity:0.5;cursor:not-allowed;">
           <p class="text-xs" style="color:var(--text-3);margin-top:4px;">Email tidak dapat diubah</p>
         </div>
+        <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:12px;">🔐 Reset Password (opsional — kosongkan jika tidak ingin diubah)</p>
+          <div class="form-group">
+            <label class="form-label">Password Baru</label>
+            <input type="password" class="form-control" id="edit-emp-password" placeholder="Min. 8 karakter" minlength="8">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Konfirmasi Password Baru</label>
+            <input type="password" class="form-control" id="edit-emp-password-confirm" placeholder="Ulangi password baru" minlength="8">
+          </div>
+        </div>
         <div class="flex gap-3 mt-4">
           <button type="submit" class="btn btn-primary flex-1">💾 Simpan Perubahan</button>
           <button type="button" class="btn btn-ghost" id="btn-cancel-edit">Batal</button>

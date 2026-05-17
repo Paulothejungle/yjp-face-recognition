@@ -153,4 +153,39 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, resetFace, update, remove };
+/** PUT /api/employees/:id/password — admin reset password karyawan */
+async function resetEmployeePassword(req, res) {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
+  }
+
+  try {
+    // Cari email karyawan
+    const { data: emp, error: empError } = await supabaseAdmin
+      .from('employees')
+      .select('email')
+      .eq('id', id)
+      .single();
+    if (empError) throw empError;
+
+    // Cari user di Auth berdasarkan email
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+    const authUser = users?.users?.find(u => u.email === emp.email);
+    if (!authUser) return res.status(404).json({ error: 'User auth tidak ditemukan' });
+
+    // Update password
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      authUser.id,
+      { password: newPassword }
+    );
+    if (updateError) throw updateError;
+
+    return res.json({ message: 'Password karyawan berhasil diubah' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, resetFace, update, remove, resetEmployeePassword };

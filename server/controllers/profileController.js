@@ -117,4 +117,40 @@ async function updateProfile(req, res) {
   }
 }
 
-module.exports = { getProfile, uploadPhoto, updateProfile };
+/**
+ * PUT /api/profile/me/password
+ * User/admin ganti password sendiri — butuh verifikasi password lama
+ */
+async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Password lama dan baru wajib diisi' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
+  }
+
+  try {
+    // Verifikasi password lama dengan mencoba login
+    const { error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+      email: req.user.email,
+      password: currentPassword
+    });
+    if (signInError) {
+      return res.status(401).json({ error: 'Password lama tidak benar' });
+    }
+
+    // Update password baru
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      req.user.id,
+      { password: newPassword }
+    );
+    if (updateError) throw updateError;
+
+    return res.json({ message: 'Password berhasil diubah' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getProfile, uploadPhoto, updateProfile, changePassword };
