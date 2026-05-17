@@ -7,13 +7,18 @@ const { supabaseAdmin } = require('../lib/supabase');
 async function getProfile(req, res) {
   try {
     if (!req.employeeId) {
-      // Admin tidak punya employee record, ambil dari auth user
-      const { data: user } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+      // Admin: ambil foto dari profiles.photo_url
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('photo_url')
+        .eq('id', req.user.id)
+        .single();
+
       return res.json({
         id: null,
-        name: user?.user_metadata?.name || 'Admin',
+        name: req.user.user_metadata?.name || 'Admin',
         email: req.user.email,
-        photo_url: user?.user_metadata?.photo_url || null,
+        photo_url: profile?.photo_url || null,
         role: 'admin'
       });
     }

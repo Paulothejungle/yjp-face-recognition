@@ -173,11 +173,11 @@ function renderNavbar(activePage) {
       <div class="navbar-user" style="display:flex;align-items:center;gap:12px;">
         <a href="/profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Lihat Profil">
           <div style="text-align:right;" class="user-info-text">
-            <div style="font-size:13px;font-weight:600;">${user?.name || 'User'}</div>
-            <div style="font-size:11px;color:var(--text-3);">${role === 'admin' ? '👑 Admin' : '👤 Karyawan'}</div>
+            ${role !== 'admin' ? `<div style="font-size:13px;font-weight:600;">${user?.name || ''}</div>` : ''}
+            <div style="font-size:11px;color:var(--text-3);font-weight:600;">${role === 'admin' ? '👑 Admin' : '👤 Karyawan'}</div>
           </div>
           <div class="user-avatar" title="Profil" style="cursor:pointer;border:2px solid var(--border-active);">
-            ${user?.photo_url ? `<img src="${user.photo_url}" alt="${user.name}">` : initial}
+            ${user?.photo_url ? `<img src="${user.photo_url}" alt="${user?.name || 'User'}">` : initial}
           </div>
         </a>
         <button type="button" id="nav-btn-logout" class="btn btn-ghost btn-sm" style="padding:6px 12px;color:#ef4444;border-color:var(--border);display:flex;align-items:center;gap:6px;">
