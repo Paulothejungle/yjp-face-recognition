@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Izin & Sakit — PT. Yudanta Jaya Putra</title>
+  <meta name="description" content="Pengajuan izin dan sakit karyawan PT. Yudanta Jaya Putra">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/assets/yjp1.jpg" type="image/jpeg">
+  <meta name="theme-color" content="#0a0f1e">
+  <script>
+    const _t = localStorage.getItem('yjp_token');
+    const _r = localStorage.getItem('yjp_role');
+    if (!_t) { window.location.replace('/login.html'); }
+    else if (_r === 'admin') { window.location.replace('/index.html'); }
+  </script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <main class="main-content">
+    <div class="container" style="max-width:680px;">
+
+      <!-- Header -->
+      <div class="page-header" style="margin-bottom:24px;">
+        <h1 style="font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px;">
+          📋 Izin & Sakit
+        </h1>
+        <p style="color:var(--text-3);font-size:14px;margin-top:4px;">Ajukan ketidakhadiran Anda hari ini</p>
+      </div>
+
+      <!-- Status Hari Ini -->
+      <div id="today-status" class="card" style="margin-bottom:20px;display:none;">
+        <div id="status-content"></div>
+      </div>
+
+      <!-- Form Pengajuan -->
+      <div class="card" id="form-card">
+        <h2 style="font-size:15px;font-weight:700;margin-bottom:20px;">📝 Form Pengajuan</h2>
+
+        <!-- Deadline warning -->
+        <div id="deadline-warning" class="hidden" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:#ef4444;font-size:13px;">
+          ⏰ Batas waktu pengajuan izin (17:00) sudah lewat. Tidak dapat mengajukan untuk hari ini.
+        </div>
+
+        <form id="form-izin">
+          <div class="form-group">
+            <label class="form-label">Tanggal</label>
+            <input type="text" class="form-control" id="inp-date" readonly style="opacity:0.7;cursor:default;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Jenis Ketidakhadiran *</label>
+            <div style="display:flex;gap:12px;margin-top:8px;">
+              <label style="flex:1;display:flex;align-items:center;gap:10px;padding:12px 16px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;" id="label-izin">
+                <input type="radio" name="type" value="izin" style="display:none;" id="radio-izin">
+                <span style="font-size:20px;">🏠</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px;">Izin</div>
+                  <div style="font-size:11px;color:var(--text-3);">Keperluan pribadi</div>
+                </div>
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:10px;padding:12px 16px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;" id="label-sakit">
+                <input type="radio" name="type" value="sakit" style="display:none;" id="radio-sakit">
+                <span style="font-size:20px;">🤒</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px;">Sakit</div>
+                  <div style="font-size:11px;color:var(--text-3);">Dengan surat dokter</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keterangan *</label>
+            <textarea class="form-control" id="inp-reason" rows="3" placeholder="Jelaskan alasan ketidakhadiran Anda..." style="resize:vertical;min-height:80px;" maxlength="300"></textarea>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="reason-count">0/300 karakter</div>
+          </div>
+
+          <div class="form-group" id="photo-section">
+            <label class="form-label" id="photo-label">📸 Foto Bukti * <span style="color:var(--text-3);font-weight:400;">(wajib, maks 3MB)</span></label>
+            <div id="photo-preview" style="display:none;margin-bottom:10px;">
+              <img id="preview-img" src="" alt="Preview" style="max-width:100%;max-height:200px;border-radius:10px;border:2px solid var(--border);object-fit:cover;">
+              <button type="button" id="btn-remove-photo" style="display:block;margin-top:8px;background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;">✕ Hapus foto</button>
+            </div>
+            <div id="photo-dropzone" style="border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;">
+              <div style="font-size:28px;margin-bottom:8px;">📷</div>
+              <div style="font-size:13px;color:var(--text-3);">Klik atau seret foto ke sini</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px);">JPG, PNG, maks 3MB</div>
+              <input type="file" id="photo-input" accept="image/*" style="display:none;">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btn-submit" style="margin-top:8px;">
+            📤 Kirim Pengajuan
+          </button>
+        </form>
+      </div>
+
+      <!-- Riwayat Pengajuan -->
+      <div class="card" style="margin-top:24px;">
+        <h2 style="font-size:15px;font-weight:700;margin-bottom:20px;">📋 Riwayat Pengajuan</h2>
+        <div id="history-list">
+          <div style="text-align:center;padding:32px;color:var(--text-3);">
+            <div style="font-size:28px;margin-bottom:8px;">⏳</div>
+            <div>Memuat riwayat...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal Foto -->
+  <div class="modal-backdrop" id="modal-photo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="this.style.display='none'">
+    <img id="modal-photo-img" src="" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;">
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!Auth.requireAuth()) throw new Error('Not auth');
+    document.getElementById('navbar-container').innerHTML = renderNavbar('izin');
+
+    // Set tanggal hari ini
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('inp-date').value = todayStr;
+
+    // Cek deadline
+    const deadline = new Date(today);
+    deadline.setHours(17, 0, 0, 0);
+    const isPastDeadline = today > deadline;
+    if (isPastDeadline) {
+      document.getElementById('deadline-warning').classList.remove('hidden');
+      document.getElementById('btn-submit').disabled = true;
+      document.getElementById('btn-submit').style.opacity = '0.5';
+    }
+
+    let selectedPhoto = null;
+
+    // Radio button styling
+    document.querySelectorAll('input[name="type"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.getElementById('label-izin').style.borderColor = 'var(--border)';
+        document.getElementById('label-izin').style.background = 'transparent';
+        document.getElementById('label-sakit').style.borderColor = 'var(--border)';
+        document.getElementById('label-sakit').style.background = 'transparent';
+
+        const lbl = document.getElementById(`label-${radio.value}`);
+        lbl.style.borderColor = 'var(--primary)';
+        lbl.style.background = 'rgba(59,130,246,0.1)';
+
+        // Update label foto
+        const photoLabel = document.getElementById('photo-label');
+        if (radio.value === 'sakit') {
+          photoLabel.innerHTML = '📄 Foto Surat Dokter * <span style="color:var(--text-3);font-weight:400;">(wajib, maks 3MB)</span>';
+        } else {
+          photoLabel.innerHTML = '📸 Foto Bukti * <span style="color:var(--text-3);font-weight:400;">(wajib, maks 3MB)</span>';
+        }
+      });
+    });
+
+    // Reason counter
+    document.getElementById('inp-reason').addEventListener('input', function() {
+      document.getElementById('reason-count').textContent = `${this.value.length}/300 karakter`;
+    });
+
+    // Photo upload
+    const photoInput = document.getElementById('photo-input');
+    document.getElementById('photo-dropzone').addEventListener('click', () => photoInput.click());
+    document.getElementById('photo-dropzone').addEventListener('dragover', e => {
+      e.preventDefault();
+      e.currentTarget.style.borderColor = 'var(--primary)';
+    });
+    document.getElementById('photo-dropzone').addEventListener('dragleave', e => {
+      e.currentTarget.style.borderColor = 'var(--border)';
+    });
+    document.getElementById('photo-dropzone').addEventListener('drop', e => {
+      e.preventDefault();
+      e.currentTarget.style.borderColor = 'var(--border)';
+      const file = e.dataTransfer.files[0];
+      if (file) handlePhotoFile(file);
+    });
+
+    photoInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) handlePhotoFile(file);
+    });
+
+    document.getElementById('btn-remove-photo').addEventListener('click', () => {
+      selectedPhoto = null;
+      document.getElementById('photo-preview').style.display = 'none';
+      document.getElementById('photo-dropzone').style.display = 'block';
+      photoInput.value = '';
+    });
+
+    async function handlePhotoFile(file) {
+      if (file.size > 3 * 1024 * 1024) {
+        showToast('warning', 'Foto terlalu besar', 'Maksimum 3MB');
+        return;
+      }
+      try {
+        selectedPhoto = await compressImage(file, 800, 0.8);
+        document.getElementById('preview-img').src = selectedPhoto;
+        document.getElementById('photo-preview').style.display = 'block';
+        document.getElementById('photo-dropzone').style.display = 'none';
+      } catch (e) {
+        showToast('error', 'Gagal membaca foto', e.message);
+      }
+    }
+
+    function compressImage(file, maxSize, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = ev => {
+          img.src = ev.target.result;
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > height) { if (width > maxSize) { height = Math.round(height * maxSize / width); width = maxSize; } }
+            else { if (height > maxSize) { width = Math.round(width * maxSize / height); height = maxSize; } }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Submit form
+    document.getElementById('form-izin').addEventListener('submit', async e => {
+      e.preventDefault();
+      const type = document.querySelector('input[name="type"]:checked')?.value;
+      const reason = document.getElementById('inp-reason').value.trim();
+      const btn = document.getElementById('btn-submit');
+
+      if (!type) { showToast('warning', 'Pilih jenis', 'Pilih izin atau sakit terlebih dahulu'); return; }
+      if (!reason) { showToast('warning', 'Keterangan kosong', 'Isi keterangan ketidakhadiran'); return; }
+      if (!selectedPhoto) {
+        showToast('warning', 'Foto wajib', type === 'sakit' ? 'Upload foto surat dokter' : 'Upload foto bukti'); return;
+      }
+
+      btn.textContent = 'Mengirim...';
+      btn.disabled = true;
+
+      try {
+        await Auth.apiCall('POST', '/api/absences', { type, reason, photo_url: selectedPhoto });
+        showToast('success', 'Pengajuan terkirim', 'Menunggu konfirmasi admin');
+        document.getElementById('form-card').innerHTML = `
+          <div style="text-align:center;padding:32px;">
+            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Pengajuan Terkirim</h3>
+            <p style="color:var(--text-3);">Pengajuan ${type} Anda sedang menunggu konfirmasi dari admin.</p>
+          </div>`;
+        loadHistory();
+      } catch (err) {
+        showToast('error', 'Gagal mengirim', err.message);
+        btn.textContent = '📤 Kirim Pengajuan';
+        btn.disabled = false;
+      }
+    });
+
+    // Load riwayat
+    async function loadHistory() {
+      try {
+        const data = await Auth.apiCall('GET', '/api/absences');
+        const container = document.getElementById('history-list');
+
+        if (!data.length) {
+          container.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-3);">
+            <div style="font-size:28px;margin-bottom:8px;">📭</div>
+            <div>Belum ada riwayat pengajuan</div></div>`;
+          return;
+        }
+
+        const statusMap = {
+          pending: { label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+          approved: { label: 'Disetujui', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+          rejected: { label: 'Ditolak', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' }
+        };
+        const typeIcon = { izin: '🏠', sakit: '🤒', alpa: '⛔' };
+        const typeLabel = { izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' };
+
+        container.innerHTML = data.map(item => {
+          const s = statusMap[item.status] || statusMap.pending;
+          const dateStr = new Date(item.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+          return `
+          <div style="padding:14px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">${typeIcon[item.type]} ${typeLabel[item.type]}</div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:2px;">${dateStr}</div>
+              </div>
+              <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${s.bg};color:${s.color};">${s.label}</span>
+            </div>
+            ${item.reason ? `<p style="font-size:13px;margin-top:8px;color:var(--text-2);">${item.reason}</p>` : ''}
+            ${item.photo_url ? `<button onclick="document.getElementById('modal-photo-img').src='${item.photo_url}';document.getElementById('modal-photo').style.display='flex';"
+              style="margin-top:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--primary);padding:4px 12px;border-radius:8px;cursor:pointer;font-size:12px;">👁️ Lihat Foto Bukti</button>` : ''}
+            ${item.admin_note ? `<div style="margin-top:8px;background:var(--bg-3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text-3);">💬 <b>Catatan Admin:</b> ${item.admin_note}</div>` : ''}
+          </div>`;
+        }).join('');
+      } catch (err) {
+        document.getElementById('history-list').innerHTML = `<div style="color:#ef4444;font-size:13px;padding:16px;">${err.message}</div>`;
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

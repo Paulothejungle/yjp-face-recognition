@@ -48,6 +48,7 @@
         <button class="tab-btn active" data-tab="karyawan">👥 Karyawan</button>
         <button class="tab-btn" data-tab="enrollment">📸 Pendaftaran Wajah</button>
         <button class="tab-btn" data-tab="pengaturan">⚙️ Pengaturan</button>
+        <button class="tab-btn" data-tab="izin">📋 Izin &amp; Absen</button>
       </div>
 
       <!-- TAB: KARYAWAN -->
@@ -65,6 +66,35 @@
             Memuat data karyawan...
           </div>
         </div>
+      </div>
+
+      <!-- TAB: IZIN & ABSEN -->
+      <div id="tab-izin" class="tab-content hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;">📋 Pengajuan Izin &amp; Absen</h2>
+            <p style="font-size:13px;color:var(--text-3);margin-top:2px;">Konfirmasi pengajuan karyawan</p>
+          </div>
+          <button id="btn-process-alpa" class="btn btn-danger btn-sm">⚠️ Proses Alpa Hari Ini</button>
+        </div>
+
+        <!-- Filter -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <select class="form-control" id="filter-status" style="max-width:140px;">
+            <option value="">Semua Status</option>
+            <option value="pending">Menunggu</option>
+            <option value="approved">Disetujui</option>
+            <option value="rejected">Ditolak</option>
+          </select>
+          <select class="form-control" id="filter-type" style="max-width:140px;">
+            <option value="">Semua Tipe</option>
+            <option value="izin">Izin</option>
+            <option value="sakit">Sakit</option>
+            <option value="alpa">Alpa</option>
+          </select>
+        </div>
+
+        <div id="absences-list"></div>
       </div>
 
       <!-- TAB: ENROLLMENT -->
@@ -211,7 +241,34 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <!-- Modal Konfirmasi Izin -->
+  <div class="modal-backdrop" id="modal-confirm-absence">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title">✅ Konfirmasi Pengajuan</h3>
+        <button class="modal-close" id="close-modal-confirm">✕</button>
+      </div>
+      <div id="confirm-absence-detail" style="margin-bottom:16px;padding:12px;background:var(--bg-3);border-radius:10px;font-size:13px;"></div>
+      <form id="form-confirm-absence">
+        <input type="hidden" id="confirm-absence-id">
+        <input type="hidden" id="confirm-absence-action">
+        <div class="form-group">
+          <label class="form-label">Catatan Admin (opsional)</label>
+          <textarea class="form-control" id="inp-admin-note" rows="3" placeholder="Tambahkan catatan untuk karyawan..." style="resize:vertical;"></textarea>
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button type="submit" class="btn btn-primary flex-1" id="btn-confirm-submit">✅ Setujui</button>
+          <button type="button" class="btn btn-ghost" id="btn-cancel-confirm">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Foto Bukti -->
+  <div id="modal-photo-view" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer;" onclick="this.style.display='none'">
+    <img id="modal-photo-src" src="" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;">
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/js/auth.js?v=2"></script>
   <script src="/js/faceRecognition.js"></script>

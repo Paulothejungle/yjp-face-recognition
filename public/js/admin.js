@@ -6,7 +6,7 @@ document.getElementById('navbar-container').innerHTML = renderNavbar('admin');
 
 // ── Tab navigation
 const tabs = document.querySelectorAll('.tab-btn');
-const tabContents = { karyawan: 'tab-karyawan', enrollment: 'tab-enrollment', pengaturan: 'tab-pengaturan' };
+const tabContents = { karyawan: 'tab-karyawan', enrollment: 'tab-enrollment', pengaturan: 'tab-pengaturan', izin: 'tab-izin' };
 tabs.forEach(btn => {
   btn.addEventListener('click', () => {
     tabs.forEach(t => t.classList.remove('active'));
@@ -15,6 +15,7 @@ tabs.forEach(btn => {
     document.getElementById(tabContents[btn.dataset.tab]).classList.remove('hidden');
     if (btn.dataset.tab === 'pengaturan' && !settingsMap) initSettingsMap();
     if (btn.dataset.tab === 'enrollment') loadEmployeesForSelect();
+    if (btn.dataset.tab === 'izin') loadAbsences();
   });
 });
 // Handle anchor link to pengaturan tab
@@ -385,6 +386,173 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     showToast('success', 'Pengaturan disimpan', 'Berlaku untuk absensi selanjutnya');
   } catch (err) {
     showToast('error', 'Gagal menyimpan pengaturan', err.message);
+  }
+});
+
+// ============================================================
+// TAB: IZIN & ABSEN
+// ============================================================
+let allAbsences = [];
+
+async function loadAbsences() {
+  document.getElementById('absences-list').innerHTML = `
+    <div style="text-align:center;padding:40px;color:var(--text-3);">
+      <div style="font-size:28px;margin-bottom:8px;">⏳</div>Memuat data...
+    </div>`;
+  try {
+    allAbsences = await Auth.apiCall('GET', '/api/absences');
+    renderAbsences();
+  } catch (err) {
+    document.getElementById('absences-list').innerHTML = `<div style="color:#ef4444;padding:16px;">${err.message}</div>`;
+  }
+}
+
+function renderAbsences() {
+  const statusFilter = document.getElementById('filter-status').value;
+  const typeFilter = document.getElementById('filter-type').value;
+
+  let list = allAbsences.filter(a => {
+    if (statusFilter && a.status !== statusFilter) return false;
+    if (typeFilter && a.type !== typeFilter) return false;
+    return true;
+  });
+
+  if (!list.length) {
+    document.getElementById('absences-list').innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--text-3);">
+        <div style="font-size:32px;margin-bottom:8px;">📭</div>
+        <div>Tidak ada data yang ditemukan</div>
+      </div>`;
+    return;
+  }
+
+  const statusMap = {
+    pending: { label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+    approved: { label: 'Disetujui', color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+    rejected: { label: 'Ditolak', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' }
+  };
+  const typeIcon = { izin: '🏠', sakit: '🤒', alpa: '⛔' };
+  const typeLabel = { izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' };
+
+  document.getElementById('absences-list').innerHTML = list.map(item => {
+    const s = statusMap[item.status] || statusMap.pending;
+    const emp = item.employees || {};
+    const dateStr = new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const empAvatar = emp.photo_url
+      ? `<img src="${emp.photo_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">`
+      : `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;">${(emp.name || '?')[0].toUpperCase()}</div>`;
+
+    return `
+    <div style="padding:16px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        ${empAvatar}
+        <div style="flex:1;min-width:200px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:700;font-size:14px;">${emp.name || '-'}</span>
+            <span style="font-size:12px;color:var(--text-3);">${emp.email || ''}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-2);">${typeIcon[item.type]} <b>${typeLabel[item.type]}</b> · ${dateStr}</div>
+          ${item.reason ? `<p style="font-size:13px;margin-top:6px;color:var(--text-2);">${item.reason}</p>` : ''}
+          ${item.admin_note ? `<div style="margin-top:6px;font-size:12px;color:var(--text-3);background:var(--bg-3);padding:6px 10px;border-radius:8px;">💬 ${item.admin_note}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${s.bg};color:${s.color};">${s.label}</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+            ${item.photo_url ? `<button onclick="viewAbsencePhoto('${item.id}')" class="btn btn-ghost btn-sm" style="font-size:11px;">👁️ Foto</button>` : ''}
+            ${item.status === 'pending' ? `
+              <button onclick="openConfirmModal('${item.id}', 'approved', '${(emp.name || '').replace(/'/g, '')}', '${typeLabel[item.type]}')" class="btn btn-primary btn-sm" style="font-size:11px;">✅ Setujui</button>
+              <button onclick="openConfirmModal('${item.id}', 'rejected', '${(emp.name || '').replace(/'/g, '')}', '${typeLabel[item.type]}')" class="btn btn-danger btn-sm" style="font-size:11px;">✕ Tolak</button>
+            ` : `<button onclick="openConfirmModal('${item.id}', 'edit', '${(emp.name || '').replace(/'/g, '')}', '${typeLabel[item.type]}')" class="btn btn-ghost btn-sm" style="font-size:11px;">✏️ Edit</button>`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Simpan photo_url per absence id untuk modal
+const absencePhotoMap = {};
+allAbsences.forEach && allAbsences.forEach(a => { if (a.photo_url) absencePhotoMap[a.id] = a.photo_url; });
+
+function viewAbsencePhoto(id) {
+  const item = allAbsences.find(a => a.id === id);
+  if (!item?.photo_url) return;
+  document.getElementById('modal-photo-src').src = item.photo_url;
+  document.getElementById('modal-photo-view').style.display = 'flex';
+}
+
+function openConfirmModal(id, action, empName, typeLabel) {
+  document.getElementById('confirm-absence-id').value = id;
+  document.getElementById('confirm-absence-action').value = action;
+  document.getElementById('inp-admin-note').value = '';
+
+  const item = allAbsences.find(a => a.id === id);
+  document.getElementById('confirm-absence-detail').innerHTML = `
+    <div style="font-weight:600;margin-bottom:4px;">${empName} — ${typeLabel}</div>
+    <div style="color:var(--text-3);">${item?.reason || ''}</div>`;
+
+  if (action === 'approved') {
+    document.getElementById('confirm-modal-title').textContent = '✅ Setujui Pengajuan';
+    document.getElementById('btn-confirm-submit').textContent = '✅ Setujui';
+    document.getElementById('btn-confirm-submit').className = 'btn btn-primary flex-1';
+  } else if (action === 'rejected') {
+    document.getElementById('confirm-modal-title').textContent = '✕ Tolak Pengajuan';
+    document.getElementById('btn-confirm-submit').textContent = '✕ Tolak';
+    document.getElementById('btn-confirm-submit').className = 'btn btn-danger flex-1';
+  } else {
+    document.getElementById('confirm-modal-title').textContent = '✏️ Edit Catatan';
+    document.getElementById('btn-confirm-submit').textContent = '💾 Simpan';
+    document.getElementById('btn-confirm-submit').className = 'btn btn-primary flex-1';
+    document.getElementById('inp-admin-note').value = item?.admin_note || '';
+  }
+
+  document.getElementById('modal-confirm-absence').classList.add('open');
+}
+
+document.getElementById('close-modal-confirm').addEventListener('click', () => {
+  document.getElementById('modal-confirm-absence').classList.remove('open');
+});
+document.getElementById('btn-cancel-confirm').addEventListener('click', () => {
+  document.getElementById('modal-confirm-absence').classList.remove('open');
+});
+
+document.getElementById('form-confirm-absence').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('confirm-absence-id').value;
+  const action = document.getElementById('confirm-absence-action').value;
+  const admin_note = document.getElementById('inp-admin-note').value.trim();
+  const btn = document.getElementById('btn-confirm-submit');
+
+  btn.disabled = true;
+  try {
+    if (action === 'edit') {
+      await Auth.apiCall('PUT', `/api/absences/${id}`, { admin_note });
+    } else {
+      await Auth.apiCall('PUT', `/api/absences/${id}/confirm`, { status: action, admin_note });
+    }
+    showToast('success', 'Berhasil', action === 'approved' ? 'Pengajuan disetujui' : action === 'rejected' ? 'Pengajuan ditolak' : 'Catatan disimpan');
+    document.getElementById('modal-confirm-absence').classList.remove('open');
+    loadAbsences();
+  } catch (err) {
+    showToast('error', 'Gagal', err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Filter
+document.getElementById('filter-status').addEventListener('change', renderAbsences);
+document.getElementById('filter-type').addEventListener('change', renderAbsences);
+
+// Proses Alpa
+document.getElementById('btn-process-alpa').addEventListener('click', async () => {
+  if (!confirm('Proses alpa untuk semua karyawan yang tidak hadir dan tidak ada pengajuan hari ini?')) return;
+  try {
+    const result = await Auth.apiCall('POST', '/api/absences/process-alpa');
+    showToast('success', 'Proses Alpa', result.message);
+    loadAbsences();
+  } catch (err) {
+    showToast('error', 'Gagal proses alpa', err.message);
   }
 });
 
