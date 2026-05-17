@@ -33,9 +33,11 @@ const Auth = {
     const res = await fetch(API + path, opts);
     const data = await res.json();
     if (!res.ok) {
-      if (res.status === 401) {
+      // Hanya redirect ke login jika 401 dan BUKAN dari endpoint login itu sendiri
+      if (res.status === 401 && !path.includes('/api/auth/login')) {
         Auth.clear();
         window.location.replace('/login.html');
+        return;
       }
       throw new Error(data.error || 'Request gagal');
     }
