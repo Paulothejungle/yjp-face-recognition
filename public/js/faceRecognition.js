@@ -109,15 +109,17 @@ const FaceRec = {
     const displaySize = { width: videoEl.videoWidth, height: videoEl.videoHeight };
     faceapi.matchDimensions(canvasEl, displaySize);
 
+    const W = displaySize.width; // lebar canvas untuk mirror X
+    // mx(x, w) → posisi X yang sudah di-mirror agar sesuai video unmirrored
+    const mx = (x, w) => W - x - w;
+
     let lastDetectTime = 0;
     let lastMatch = null;
-    let matchFrames = 0; // berapa frame berturut match sama
+    let matchFrames = 0;
 
     const loop = async () => {
       this.animFrame = requestAnimationFrame(loop);
       const now = Date.now();
-
-      // Deteksi setiap 300ms
       if (now - lastDetectTime < 300) return;
       lastDetectTime = now;
 
@@ -129,33 +131,30 @@ const FaceRec = {
         .withFaceLandmarks(true)
         .withFaceDescriptors();
 
-      if (!detections.length) {
-        lastMatch = null;
-        matchFrames = 0;
-        return;
-      }
+      if (!detections.length) { lastMatch = null; matchFrames = 0; return; }
 
       const resized = faceapi.resizeResults(detections, displaySize);
 
-      // Draw detections
+      // Gambar kotak wajah (koordinat X di-mirror)
       resized.forEach(det => {
         const { x, y, width, height } = det.detection.box;
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, width, height);
+        ctx.strokeRect(mx(x, width), y, width, height);
       });
 
-      // Match pertama yang terdeteksi
+      // Cocokkan wajah pertama
       const match = this.matchFace(resized[0].descriptor);
+      const { x, y, width } = resized[0].detection.box;
+      const lx = mx(x, width); // posisi X label yang sudah di-mirror
 
       if (match) {
-        // Draw label
-        const { x, y } = resized[0].detection.box;
+        const labelW = match.name.length * 9 + 20;
         ctx.fillStyle = 'rgba(59,130,246,0.8)';
-        ctx.fillRect(x, y - 28, match.name.length * 9 + 20, 28);
+        ctx.fillRect(lx, y - 28, labelW, 28);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 14px Inter, sans-serif';
-        ctx.fillText(`${match.name} (${match.confidence}%)`, x + 8, y - 8);
+        ctx.fillText(`${match.name} (${match.confidence}%)`, lx + 8, y - 8);
 
         if (lastMatch?.id === match.id) {
           matchFrames++;
@@ -170,12 +169,11 @@ const FaceRec = {
           if (onDetected) onDetected(match);
         }
       } else {
-        // Draw "Tidak dikenali"
         ctx.fillStyle = 'rgba(239,68,68,0.7)';
-        ctx.fillRect(resized[0].detection.box.x, resized[0].detection.box.y - 28, 140, 28);
+        ctx.fillRect(lx, y - 28, 140, 28);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 13px Inter, sans-serif';
-        ctx.fillText('Tidak Dikenali', resized[0].detection.box.x + 8, resized[0].detection.box.y - 8);
+        ctx.fillText('Tidak Dikenali', lx + 8, y - 8);
         lastMatch = null;
         matchFrames = 0;
       }
