@@ -71,7 +71,7 @@ async function loadEmployees() {
       return `
         <div class="card emp-card" data-id="${emp.id}">
           <span class="emp-badge badge ${hasDescriptor ? 'badge-success' : 'badge-warning'}">
-            ${hasDescriptor ? '✅ Wajah OK' : '⚠️ Belum Enroll'}
+            ${hasDescriptor ? '✅ Wajah OK' : '⚠️ Belum Daftar'}
           </span>
           <div class="emp-avatar">
             ${emp.photo_url ? `<img src="${emp.photo_url}" alt="${emp.name}">` : initial}
@@ -80,7 +80,7 @@ async function loadEmployees() {
           <div class="text-xs" style="color:var(--text-3);margin-top:4px;">${emp.email}</div>
           <div class="emp-actions">
             <button data-action="enroll" data-id="${emp.id}" class="btn btn-primary btn-sm flex-1" title="Daftar Wajah">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Wajah
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Daftar
             </button>
             <button data-action="edit" data-id="${emp.id}" data-name="${emp.name}" data-email="${emp.email}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
             <button data-action="reset-face" data-id="${emp.id}" data-name="${emp.name}" class="btn btn-danger btn-sm" title="Reset Wajah" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#f59e0b;">🔄</button>
@@ -95,7 +95,7 @@ async function loadEmployees() {
 }
 
 async function resetFace(id, name) {
-  if (!confirm(`Reset data wajah untuk karyawan "${name}"? Statusnya akan kembali menjadi Belum Enroll.`)) return;
+  if (!confirm(`Reset data wajah untuk karyawan "${name}"? Statusnya akan kembali menjadi Belum Daftar.`)) return;
   try {
     await Auth.apiCall('DELETE', `/api/employees/${id}/face`);
     showToast('success', 'Berhasil', `Data wajah ${name} telah direset`);
