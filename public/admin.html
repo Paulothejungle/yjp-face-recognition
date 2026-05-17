@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel — PT. Yudanta Jaya Putra</title>
   <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/assets/yjp1.jpg" type="image/jpeg">
   <meta name="theme-color" content="#0a0f1e">
   <script>
     if (!localStorage.getItem('yjp_token')) { window.location.replace('/login.html'); }
@@ -123,8 +124,12 @@
                 <input type="time" class="form-control" id="set-deadline">
               </div>
               <div class="form-group">
-                <label class="form-label">Jam Mulai Pulang</label>
+                <label class="form-label">Jam Mulai Pulang (Senin–Jumat)</label>
                 <input type="time" class="form-control" id="set-checkout-start">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jam Mulai Pulang (Sabtu)</label>
+                <input type="time" class="form-control" id="set-checkout-saturday" placeholder="12:00">
               </div>
               <button type="submit" class="btn btn-primary btn-block">💾 Simpan Pengaturan</button>
             </form>

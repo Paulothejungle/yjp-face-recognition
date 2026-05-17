@@ -275,6 +275,7 @@ async function loadSettings() {
     document.getElementById('set-radius').value = s.radius_meters;
     document.getElementById('set-deadline').value = s.check_in_deadline?.slice(0, 5);
     document.getElementById('set-checkout-start').value = s.check_out_start?.slice(0, 5);
+    document.getElementById('set-checkout-saturday').value = s.check_out_saturday?.slice(0, 5) || '12:00';
   } catch (e) {}
 }
 
@@ -312,6 +313,7 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
       radius_meters: parseInt(document.getElementById('set-radius').value),
       check_in_deadline: document.getElementById('set-deadline').value + ':00',
       check_out_start: document.getElementById('set-checkout-start').value + ':00',
+      check_out_saturday: document.getElementById('set-checkout-saturday').value + ':00',
     });
     showToast('success', 'Pengaturan disimpan', 'Berlaku untuk absensi selanjutnya');
   } catch (err) {

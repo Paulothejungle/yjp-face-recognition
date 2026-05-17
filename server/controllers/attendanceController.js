@@ -67,8 +67,11 @@ async function checkIn(req, res) {
       return res.status(409).json({ error: 'Sudah melakukan absen masuk hari ini' });
     }
 
-    // Tentukan status: terlambat atau hadir (Batas 07:30)
-    const isLate = currentHour > 7 || (currentHour === 7 && currentMinute > 30);
+    // Tentukan status berdasarkan batas jam masuk dari settings
+    // Format check_in_deadline: "HH:MM:SS" atau "HH:MM"
+    const deadlineStr = settings.check_in_deadline || '07:30:00';
+    const [dlH, dlM] = deadlineStr.split(':').map(Number);
+    const isLate = currentHour > dlH || (currentHour === dlH && currentMinute > dlM);
     const status = isLate ? 'terlambat' : 'hadir';
 
     // Upsert attendance
@@ -140,14 +143,19 @@ async function checkOut(req, res) {
       return res.status(403).json({ error: 'Hari Minggu libur, absen keluar tidak diizinkan.' });
     }
 
-    // Validasi jam pulang
+    // Validasi jam pulang berdasarkan settings
+    const checkoutStr = settings.check_out_start || '17:00:00';
+    const [coH] = checkoutStr.split(':').map(Number);
+
     if (day >= 1 && day <= 5) { // Senin - Jumat
-      if (currentHour < 17) {
-        return res.status(403).json({ error: 'Belum waktunya pulang. Absen keluar baru bisa dilakukan jam 17:00.' });
+      if (currentHour < coH) {
+        return res.status(403).json({ error: `Belum waktunya pulang. Absen keluar baru bisa dilakukan jam ${String(coH).padStart(2,'0')}:00.` });
       }
-    } else if (day === 6) { // Sabtu
-      if (currentHour < 12) {
-        return res.status(403).json({ error: 'Belum waktunya pulang. Absen keluar baru bisa dilakukan jam 12:00.' });
+    } else if (day === 6) { // Sabtu: jam pulang dari settings
+      const saturdayStr = settings.check_out_saturday || '12:00:00';
+      const [satH] = saturdayStr.split(':').map(Number);
+      if (currentHour < satH) {
+        return res.status(403).json({ error: `Belum waktunya pulang. Absen keluar Sabtu mulai jam ${String(satH).padStart(2,'0')}:00.` });
       }
     }
 
