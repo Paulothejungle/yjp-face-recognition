@@ -128,14 +128,25 @@
     const todayStr = today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     document.getElementById('inp-date').value = todayStr;
 
-    // Cek deadline
-    const deadline = new Date(today);
-    deadline.setHours(17, 0, 0, 0);
-    const isPastDeadline = today > deadline;
-    if (isPastDeadline) {
-      document.getElementById('deadline-warning').classList.remove('hidden');
-      document.getElementById('btn-submit').disabled = true;
-      document.getElementById('btn-submit').style.opacity = '0.5';
+    // Cek hari Minggu — hari libur
+    const isSunday = today.getDay() === 0;
+    if (isSunday) {
+      document.getElementById('form-card').innerHTML = `
+        <div style="text-align:center;padding:32px;">
+          <div style="font-size:52px;margin-bottom:16px;">🏖️</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Hari Libur</h3>
+          <p style="color:var(--text-3);">Hari Minggu adalah hari libur.<br>Tidak ada pengajuan izin yang dapat dilakukan.</p>
+        </div>`;
+    } else {
+      // Cek deadline jam 17:00
+      const deadline = new Date(today);
+      deadline.setHours(17, 0, 0, 0);
+      const isPastDeadline = today > deadline;
+      if (isPastDeadline) {
+        document.getElementById('deadline-warning').classList.remove('hidden');
+        document.getElementById('btn-submit').disabled = true;
+        document.getElementById('btn-submit').style.opacity = '0.5';
+      }
     }
 
     let selectedPhoto = null;

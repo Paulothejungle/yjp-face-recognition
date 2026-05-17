@@ -1,5 +1,10 @@
 const { supabaseAdmin } = require('../lib/supabase');
 
+/** Cek apakah hari ini Minggu */
+function isSunday() {
+  return new Date().getDay() === 0;
+}
+
 /** Cek apakah deadline 17:00 sudah lewat hari ini */
 function isDeadlinePassed() {
   const now = new Date();
@@ -53,6 +58,11 @@ async function create(req, res) {
   }
   if (!req.employeeId) {
     return res.status(403).json({ error: 'Hanya karyawan yang bisa submit izin' });
+  }
+
+  // Blokir hari Minggu
+  if (isSunday()) {
+    return res.status(400).json({ error: 'Hari Minggu adalah hari libur. Tidak dapat mengajukan izin.' });
   }
 
   // Cek batas waktu jam 17:00
