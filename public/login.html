@@ -7,6 +7,11 @@
   <meta name="description" content="Login Sistem Absensi PT. Yudanta Jaya Putra">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0a0f1e">
+  <script>
+    if (localStorage.getItem('yjp_token')) {
+      window.location.replace(localStorage.getItem('yjp_role') === 'admin' ? '/index.html' : '/absensi.html');
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
   <style>
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }

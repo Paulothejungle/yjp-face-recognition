@@ -94,17 +94,16 @@ async function saveFaceDescriptor(req, res) {
   }
 }
 
-/** DELETE /api/employees/:id */
-async function remove(req, res) {
+/** DELETE /api/employees/:id/face */
+async function resetFace(req, res) {
   const { id } = req.params;
   try {
-    // Soft delete
     const { error } = await supabaseAdmin
-      .from('employees')
-      .update({ is_active: false })
-      .eq('id', id);
+      .from('face_descriptors')
+      .delete()
+      .eq('employee_id', id);
     if (error) throw error;
-    return res.json({ message: 'Karyawan berhasil dihapus' });
+    return res.json({ message: 'Data wajah karyawan berhasil direset' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -128,4 +127,4 @@ async function update(req, res) {
   }
 }
 
-module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, remove, update };
+module.exports = { getAll, getAllWithDescriptors, create, saveFaceDescriptor, resetFace, update };

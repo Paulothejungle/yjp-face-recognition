@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Absensi — PT. Yudanta Jaya Putra</title>
+  <script>
+    if (!localStorage.getItem('yjp_token')) { window.location.replace('/login.html'); }
+  </script>
   <meta name="description" content="Absensi Face Recognition PT. Yudanta Jaya Putra">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0a0f1e">

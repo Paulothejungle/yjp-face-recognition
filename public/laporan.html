@@ -6,6 +6,10 @@
   <title>Laporan Absensi — PT. Yudanta Jaya Putra</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0a0f1e">
+  <script>
+    if (!localStorage.getItem('yjp_token')) { window.location.replace('/login.html'); }
+    else if (localStorage.getItem('yjp_role') !== 'admin') { window.location.replace('/absensi.html'); }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
