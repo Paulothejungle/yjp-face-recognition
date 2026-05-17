@@ -33,57 +33,36 @@ async function getProfile(req, res) {
 
 /**
  * PUT /api/profile/me/photo
- * Upload foto profil — simpan HANYA di tabel employees (BUKAN di user_metadata)
- * agar JWT token tidak membengkak dan menyebabkan error 494.
+ * Simpan foto ke:
+ *   - employees.photo_url  (karyawan biasa)
+ *   - profiles.photo_url   (admin — TIDAK ke user_metadata agar JWT tetap kecil)
  * Body: { base64, mimeType }
  */
 async function uploadPhoto(req, res) {
-  const { base64, mimeType } = req.body;
+  const { base64 } = req.body;
 
   if (!base64) {
     return res.status(400).json({ error: 'Data foto tidak valid' });
   }
 
   try {
-    const photoUrl = base64; // simpan sebagai data URL
+    const photoUrl = base64;
 
     if (req.employeeId) {
-      // Karyawan biasa: simpan di tabel employees
+      // Karyawan biasa: simpan di employees.photo_url
       const { error } = await supabaseAdmin
         .from('employees')
         .update({ photo_url: photoUrl })
         .eq('id', req.employeeId);
       if (error) throw error;
     } else {
-      // Admin: simpan di tabel profiles (tambahkan kolom photo_url jika belum ada)
-      // Untuk sementara, buat employee record untuk admin jika belum ada
-      // Cari employee record berdasarkan email
-      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
-      const adminEmail = authUser?.user?.email;
-
-      if (adminEmail) {
-        // Cek apakah ada employee record untuk admin
-        const { data: emp } = await supabaseAdmin
-          .from('employees')
-          .select('id')
-          .eq('email', adminEmail)
-          .maybeSingle();
-
-        if (emp) {
-          await supabaseAdmin.from('employees').update({ photo_url: photoUrl }).eq('id', emp.id);
-        }
-      }
-    }
-
-    // PENTING: Jangan simpan photo ke user_metadata agar JWT tetap kecil.
-    // Hapus photo_url dari user_metadata jika ada (mencegah JWT 494 error)
-    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
-    const existingMeta = { ...(existingUser?.user?.user_metadata || {}) };
-    if (existingMeta.photo_url) {
-      delete existingMeta.photo_url;
-      await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
-        user_metadata: existingMeta
-      });
+      // Admin: simpan di profiles.photo_url
+      // (kolom photo_url perlu ditambahkan via SQL: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS photo_url TEXT)
+      const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({ photo_url: photoUrl })
+        .eq('id', req.user.id);
+      if (error) throw error;
     }
 
     return res.json({ photo_url: photoUrl });

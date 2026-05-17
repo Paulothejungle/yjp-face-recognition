@@ -39,8 +39,8 @@ document.getElementById('photo-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (file.size > 3 * 1024 * 1024) {
-    showToast('warning', 'Foto terlalu besar', 'Maksimum ukuran foto adalah 3MB');
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('warning', 'Foto terlalu besar', 'Maksimum 5MB');
     return;
   }
 
@@ -48,44 +48,55 @@ document.getElementById('photo-input').addEventListener('change', async (e) => {
   progress.style.display = 'block';
 
   try {
-    // Konversi ke base64
-    const base64 = await fileToBase64(file);
+    // Kompres ke max 400x400, kualitas 75%
+    const base64 = await compressImage(file, 400, 0.75);
 
-    // Preview sementara
     renderAvatar(base64, profileData?.name);
 
-    // Upload ke server
-    const result = await Auth.apiCall('PUT', '/api/profile/me/photo', {
-      base64,
-      fileName: file.name,
-      mimeType: file.type
-    });
+    const result = await Auth.apiCall('PUT', '/api/profile/me/photo', { base64 });
 
-    // Update localStorage user info
     const user = Auth.getUser();
     if (user) {
       user.photo_url = result.photo_url;
       localStorage.setItem('yjp_user', JSON.stringify(user));
     }
 
-    // Re-render avatar dengan URL permanen
     renderAvatar(result.photo_url, profileData?.name);
     profileData.photo_url = result.photo_url;
     showToast('success', 'Foto berhasil diperbarui', '');
   } catch (err) {
     showToast('error', 'Gagal upload foto', err.message);
-    // Kembalikan avatar lama jika gagal
     renderAvatar(profileData?.photo_url, profileData?.name);
   } finally {
     progress.style.display = 'none';
-    e.target.value = ''; // reset input
+    e.target.value = '';
   }
 });
 
-function fileToBase64(file) {
+/**
+ * Kompres gambar via Canvas API sebelum upload
+ * @returns {Promise<string>} base64 JPEG data URL
+ */
+function compressImage(file, maxSize, quality) {
   return new Promise((resolve, reject) => {
+    const img = new Image();
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
+    reader.onload = (ev) => {
+      img.src = ev.target.result;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) { height = Math.round(height * maxSize / width); width = maxSize; }
+        } else {
+          if (height > maxSize) { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });

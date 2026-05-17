@@ -16,7 +16,7 @@ async function login(req, res) {
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role, employee_id, employees(name, photo_url)')
+      .select('role, employee_id, photo_url, employees(name, photo_url)')
       .eq('id', data.user.id)
       .single();
 
@@ -27,8 +27,9 @@ async function login(req, res) {
       user: {
         id: data.user.id,
         email: data.user.email,
-        name: profile?.employees?.name,
-        photo_url: profile?.employees?.photo_url,
+        name: profile?.employees?.name || null,
+        // Karyawan: employees.photo_url | Admin: profiles.photo_url
+        photo_url: profile?.employees?.photo_url || profile?.photo_url || null,
       }
     });
   } catch (err) {
@@ -55,7 +56,7 @@ async function me(req, res) {
   try {
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role, employee_id, employees(name, photo_url)')
+      .select('role, employee_id, photo_url, employees(name, photo_url)')
       .eq('id', req.user.id)
       .single();
 
@@ -64,7 +65,8 @@ async function me(req, res) {
       email: req.user.email,
       role: profile?.role,
       employee_id: profile?.employee_id,
-      ...profile?.employees,
+      name: profile?.employees?.name || null,
+      photo_url: profile?.employees?.photo_url || profile?.photo_url || null,
     });
   } catch (err) {
     return res.status(500).json({ error: 'Server error' });
