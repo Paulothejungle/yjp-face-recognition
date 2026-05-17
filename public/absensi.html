@@ -58,6 +58,15 @@
         <p>Posisikan wajah Anda di depan kamera untuk melakukan absensi</p>
       </div>
 
+      <!-- Banner Hari Libur (Minggu) -->
+      <div id="holiday-banner-user" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:1px solid rgba(16,185,129,0.35);border-radius:14px;padding:20px 24px;margin-bottom:24px;align-items:center;gap:16px;">
+        <div style="font-size:44px;">🏖️</div>
+        <div>
+          <h3 style="font-size:16px;font-weight:800;color:#10b981;margin-bottom:4px;">Selamat Hari Libur!</h3>
+          <p style="font-size:13px;color:var(--text-2);">Hari Minggu adalah hari istirahat. Tidak ada absensi hari ini. Nikmati waktu bersama keluarga! 😊</p>
+        </div>
+      </div>
+
       <div class="absensi-layout">
         <!-- Camera Side -->
         <div>
@@ -156,5 +165,11 @@
   <script src="/js/faceRecognition.js?v=5"></script>
   <script src="/js/attendance.js?v=5"></script>
   <script src="/js/app.js?v=5"></script>
+  <script>
+    if (new Date().getDay() === 0) {
+      const b = document.getElementById('holiday-banner-user');
+      if (b) b.style.display = 'flex';
+    }
+  </script>
 </body>
 </html>

@@ -25,6 +25,16 @@
     .welcome-text p { color: var(--text-2); margin-top: 4px; }
     .clock-display { font-size: 22px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
 
+    .holiday-banner {
+      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1));
+      border: 1px solid rgba(16,185,129,0.35); border-radius: var(--radius-lg);
+      padding: 20px 28px; margin-bottom: 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .holiday-banner .hb-icon { font-size: 40px; flex-shrink: 0; }
+    .holiday-banner h3 { font-size: 17px; font-weight: 800; color: #10b981; margin-bottom: 4px; }
+    .holiday-banner p { font-size: 13px; color: var(--text-2); }
+
     .attendance-table-row { cursor: pointer; }
     .attendance-table-row:hover { background: rgba(59,130,246,0.08) !important; }
 
@@ -55,8 +65,17 @@
         </div>
       </div>
 
+      <!-- Banner Hari Libur (Minggu) -->
+      <div id="holiday-banner" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1));border:1px solid rgba(16,185,129,0.35);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:none;align-items:center;gap:16px;">
+        <div style="font-size:44px;">🏖️</div>
+        <div>
+          <h3 style="font-size:17px;font-weight:800;color:#10b981;margin-bottom:4px;">Selamat Menikmati Hari Libur!</h3>
+          <p style="font-size:13px;color:var(--text-2);">Hari Minggu adalah hari istirahat. Sistem absensi dan izin tidak aktif hari ini. Sampai jumpa Senin! 😊</p>
+        </div>
+      </div>
+
       <!-- Stats -->
-      <div class="stats-grid" id="stats-grid">
+      <div class="stats-grid" id="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
         <div class="card stat-card">
           <div class="stat-icon blue">👥</div>
           <div class="stat-info">
@@ -76,6 +95,13 @@
           <div class="stat-info">
             <div class="value text-warning" id="stat-terlambat">-</div>
             <div class="label">Terlambat</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background:rgba(99,102,241,0.15);">🏠</div>
+          <div class="stat-info">
+            <div class="value" style="color:#6366f1;" id="stat-izin">-</div>
+            <div class="label">Izin/Sakit</div>
           </div>
         </div>
         <div class="card stat-card">
@@ -111,6 +137,11 @@
                 <tr><td colspan="5" class="text-center text-muted" style="padding:32px;">Memuat data...</td></tr>
               </tbody>
             </table>
+          </div>
+          <!-- Pengajuan Izin Hari Ini -->
+          <div id="absence-summary" style="display:none;border-top:1px solid var(--border);padding:16px 24px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-2);">📋 Pengajuan Izin/Sakit Hari Ini</div>
+            <div id="absence-summary-list"></div>
           </div>
         </div>
 
@@ -163,15 +194,25 @@
 
     async function loadDashboard() {
       try {
-        const [data, settings] = await Promise.all([
+        const todayStr = new Date().toISOString().split('T')[0];
+        const [data, settings, absences] = await Promise.all([
           Auth.apiCall('GET', '/api/attendance/today-summary'),
-          Auth.apiCall('GET', '/api/settings')
+          Auth.apiCall('GET', '/api/settings'),
+          Auth.apiCall('GET', '/api/absences')
         ]);
+
+        // Filter absences hanya untuk hari ini
+        const todayAbsences = absences.filter(a => a.date === todayStr);
+        const izinCount = todayAbsences.filter(a => (a.type === 'izin' || a.type === 'sakit')).length;
+        const alpaCount = todayAbsences.filter(a => a.type === 'alpa').length;
+        // "Belum Absen" = yang tidak hadir dan tidak ada pengajuan apapun
+        const belumAbsen = Math.max(0, (data.alpha || 0) - izinCount - alpaCount);
 
         document.getElementById('stat-total').textContent = data.totalKaryawan;
         document.getElementById('stat-hadir').textContent = data.hadir;
         document.getElementById('stat-terlambat').textContent = data.terlambat;
-        document.getElementById('stat-alpha').textContent = data.alpha;
+        document.getElementById('stat-izin').textContent = izinCount;
+        document.getElementById('stat-alpha').textContent = belumAbsen;
 
         const tbody = document.getElementById('today-table');
         if (!data.detail?.length) {
@@ -183,14 +224,31 @@
             const badgeClass = row.status === 'hadir' ? 'badge-success' : row.status === 'terlambat' ? 'badge-warning' : 'badge-danger';
             const badgeText = row.status === 'hadir' ? 'Hadir' : row.status === 'terlambat' ? 'Terlambat' : 'Alpha';
             return `<tr class="attendance-table-row">
-              <td>
-                <div style="font-weight:600;">${row.employees?.name || '-'}</div>
-              </td>
+              <td><div style="font-weight:600;">${row.employees?.name || '-'}</div></td>
               <td>${masuk}</td>
               <td>${keluar}</td>
               <td><span class="badge ${badgeClass}">${badgeText}</span></td>
               <td>${hitungKeterlambatan(row.check_in, row.status)}</td>
             </tr>`;
+          }).join('');
+        }
+
+        // Tampilkan ringkasan izin/sakit hari ini di bawah tabel
+        if (todayAbsences.length > 0) {
+          const typeIcon = { izin: '🏠', sakit: '🤒', alpa: '⛔' };
+          const typeLabel = { izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' };
+          const statusMap = {
+            pending: { label: 'Menunggu', color: '#f59e0b' },
+            approved: { label: 'Disetujui', color: '#10b981' },
+            rejected: { label: 'Ditolak', color: '#ef4444' }
+          };
+          document.getElementById('absence-summary').style.display = 'block';
+          document.getElementById('absence-summary-list').innerHTML = todayAbsences.map(a => {
+            const s = statusMap[a.status] || statusMap.pending;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <div><b>${a.employees?.name || '-'}</b> · ${typeIcon[a.type]} ${typeLabel[a.type]}</div>
+              <span style="color:${s.color};font-weight:600;font-size:12px;">${s.label}</span>
+            </div>`;
           }).join('');
         }
 
@@ -237,6 +295,11 @@
 
     loadDashboard();
     setInterval(loadDashboard, 30000); // Refresh setiap 30 detik
+
+    // Banner hari Minggu
+    if (new Date().getDay() === 0) {
+      document.getElementById('holiday-banner').style.display = 'flex';
+    }
   </script>
 <script src="/js/app.js"></script>
 </body>
