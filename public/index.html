@@ -195,34 +195,39 @@
     async function loadDashboard() {
       try {
         const todayStr = new Date().toISOString().split('T')[0];
-        const [data, settings, absences] = await Promise.all([
+
+        // Gunakan allSettled agar 1 kegagalan tidak merusak dashboard
+        const [attRes, settRes, absRes] = await Promise.allSettled([
           Auth.apiCall('GET', '/api/attendance/today-summary'),
           Auth.apiCall('GET', '/api/settings'),
           Auth.apiCall('GET', '/api/absences')
         ]);
 
-        // Filter absences hanya untuk hari ini
-        const todayAbsences = absences.filter(a => a.date === todayStr);
-        const izinCount = todayAbsences.filter(a => (a.type === 'izin' || a.type === 'sakit')).length;
-        const alpaCount = todayAbsences.filter(a => a.type === 'alpa').length;
-        // "Belum Absen" = yang tidak hadir dan tidak ada pengajuan apapun
-        const belumAbsen = Math.max(0, (data.alpha || 0) - izinCount - alpaCount);
+        const data     = attRes.status  === 'fulfilled' ? attRes.value  : null;
+        const settings = settRes.status === 'fulfilled' ? settRes.value : {};
+        const absances = absRes.status  === 'fulfilled' ? absRes.value  : [];
 
-        document.getElementById('stat-total').textContent = data.totalKaryawan;
-        document.getElementById('stat-hadir').textContent = data.hadir;
-        document.getElementById('stat-terlambat').textContent = data.terlambat;
-        document.getElementById('stat-izin').textContent = izinCount;
-        document.getElementById('stat-alpha').textContent = belumAbsen;
+        // Filter absences untuk hari ini
+        const todayAbsences = absances.filter(a => a.date === todayStr);
+        const izinCount  = todayAbsences.filter(a => a.type === 'izin' || a.type === 'sakit').length;
+        const alpaCount  = todayAbsences.filter(a => a.type === 'alpa').length;
+        const belumAbsen = data ? Math.max(0, (data.alpha || 0) - izinCount - alpaCount) : 0;
+
+        document.getElementById('stat-total').textContent     = data?.totalKaryawan ?? '-';
+        document.getElementById('stat-hadir').textContent     = data?.hadir ?? '-';
+        document.getElementById('stat-terlambat').textContent = data?.terlambat ?? '-';
+        document.getElementById('stat-izin').textContent      = izinCount;
+        document.getElementById('stat-alpha').textContent     = belumAbsen;
 
         const tbody = document.getElementById('today-table');
-        if (!data.detail?.length) {
+        if (!data?.detail?.length) {
           tbody.innerHTML = `<tr><td colspan="5" class="empty-state" style="padding:32px;text-align:center;color:var(--text-3);">Belum ada absensi hari ini</td></tr>`;
         } else {
           tbody.innerHTML = data.detail.map(row => {
             const masuk = row.check_in ? new Date(row.check_in).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
             const keluar = row.check_out ? new Date(row.check_out).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
             const badgeClass = row.status === 'hadir' ? 'badge-success' : row.status === 'terlambat' ? 'badge-warning' : 'badge-danger';
-            const badgeText = row.status === 'hadir' ? 'Hadir' : row.status === 'terlambat' ? 'Terlambat' : 'Alpha';
+            const badgeText  = row.status === 'hadir' ? 'Hadir' : row.status === 'terlambat' ? 'Terlambat' : 'Alpha';
             return `<tr class="attendance-table-row">
               <td><div style="font-weight:600;">${row.employees?.name || '-'}</div></td>
               <td>${masuk}</td>
@@ -233,14 +238,14 @@
           }).join('');
         }
 
-        // Tampilkan ringkasan izin/sakit hari ini di bawah tabel
+        // Ringkasan izin/sakit di bawah tabel
         if (todayAbsences.length > 0) {
-          const typeIcon = { izin: '🏠', sakit: '🤒', alpa: '⛔' };
+          const typeIcon  = { izin: '🏠', sakit: '🤒', alpa: '⛔' };
           const typeLabel = { izin: 'Izin', sakit: 'Sakit', alpa: 'Alpa' };
           const statusMap = {
-            pending: { label: 'Menunggu', color: '#f59e0b' },
+            pending:  { label: 'Menunggu', color: '#f59e0b' },
             approved: { label: 'Disetujui', color: '#10b981' },
-            rejected: { label: 'Ditolak', color: '#ef4444' }
+            rejected: { label: 'Ditolak',   color: '#ef4444' }
           };
           document.getElementById('absence-summary').style.display = 'block';
           document.getElementById('absence-summary-list').innerHTML = todayAbsences.map(a => {
@@ -253,7 +258,7 @@
         }
 
         // Map
-        renderMap(data.detail, settings);
+        renderMap(data?.detail, settings);
       } catch (err) {
         showToast('error', 'Gagal memuat dashboard', err.message);
       }

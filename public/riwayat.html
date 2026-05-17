@@ -151,10 +151,13 @@
       absenceList.innerHTML = `<div class="text-center text-muted" style="padding:24px;font-size:13px;"><div class="spinner" style="margin:0 auto 8px;"></div>Memuat...</div>`;
 
       try {
-        const [data, absences] = await Promise.all([
+        const [attRes, absRes] = await Promise.allSettled([
           Auth.apiCall('GET', `/api/attendance/me?start_date=${start}&end_date=${end}`),
           Auth.apiCall('GET', '/api/absences')
         ]);
+
+        const data           = attRes.status === 'fulfilled' ? attRes.value : [];
+        const absences       = absRes.status === 'fulfilled' ? absRes.value : [];
 
         // Filter absences untuk bulan yang dipilih
         const monthAbsences = absences.filter(a => a.date >= start && a.date <= end);
