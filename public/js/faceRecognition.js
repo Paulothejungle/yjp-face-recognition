@@ -97,6 +97,14 @@ const FaceRec = {
     }
   },
 
+  // Hentikan loop deteksi tapi tetap biarkan stream kamera hidup (untuk liveness)
+  pauseDetection() {
+    if (this.animFrame) {
+      cancelAnimationFrame(this.animFrame);
+      this.animFrame = null;
+    }
+  },
+
   async detectLoop(videoEl, canvasEl, onDetected) {
     const displaySize = { width: videoEl.videoWidth, height: videoEl.videoHeight };
     faceapi.matchDimensions(canvasEl, displaySize);
@@ -178,3 +186,91 @@ const FaceRec = {
 };
 
 window.FaceRec = FaceRec;
+
+// ============================================================
+// LIVENESS DETECTION — Random Challenge Anti-Spoofing
+// ============================================================
+const Liveness = {
+  CHALLENGES: [
+    { id: 'blink', icon: '👁️', text: 'Kedipkan mata Anda' },
+    { id: 'left',  icon: '⬅️', text: 'Gerakkan kepala ke KIRI' },
+    { id: 'right', icon: '➡️', text: 'Gerakkan kepala ke KANAN' },
+    { id: 'nod',   icon: '⬇️', text: 'Anggukkan kepala ke bawah' },
+  ],
+
+  _dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); },
+
+  // Eye Aspect Ratio — < 0.22 berarti mata tertutup
+  _ear(pts) {
+    return (this._dist(pts[1], pts[5]) + this._dist(pts[2], pts[4]))
+         / (2 * this._dist(pts[0], pts[3]));
+  },
+
+  // Rata-rata EAR kedua mata (landmark 36-41 = kiri, 42-47 = kanan)
+  _avgEAR(lm) {
+    const p = lm.positions;
+    return (this._ear(p.slice(36, 42)) + this._ear(p.slice(42, 48))) / 2;
+  },
+
+  // Posisi ujung hidung (landmark ke-30)
+  _nose(lm) { return lm.positions[30]; },
+
+  // Ambil satu frame landmark dari video
+  async _frame(videoEl) {
+    try {
+      const det = await faceapi
+        .detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+        .withFaceLandmarks(true);
+      return det ? det.landmarks : null;
+    } catch (e) { return null; }
+  },
+
+  // Pilih challenge acak
+  random() {
+    return this.CHALLENGES[Math.floor(Math.random() * this.CHALLENGES.length)];
+  },
+
+  // Jalankan satu challenge — return { passed: true/false }
+  async runChallenge(videoEl, challengeId, timeoutMs = 6000) {
+    const EAR_CLOSED  = 0.22;  // mata tertutup (kedip)
+    const EAR_OPEN    = 0.28;  // mata harus mulai dari terbuka
+    const MOVE_PX     = 22;    // pixel gerakan kepala
+    const INTERVAL_MS = 130;   // cek setiap 130ms
+
+    return new Promise(resolve => {
+      const deadline = Date.now() + timeoutMs;
+      let baseline   = null;
+      let eyeWasOpen = false;
+      let resolved   = false;
+
+      const done = (passed) => {
+        if (resolved) return;
+        resolved = true;
+        clearInterval(timer);
+        resolve({ passed });
+      };
+
+      const timer = setInterval(async () => {
+        if (Date.now() > deadline) { done(false); return; }
+        const lm = await this._frame(videoEl);
+        if (!lm) return;
+
+        if (challengeId === 'blink') {
+          const ear = this._avgEAR(lm);
+          if (ear > EAR_OPEN)             eyeWasOpen = true;
+          if (eyeWasOpen && ear < EAR_CLOSED) done(true);
+        } else {
+          const nose = this._nose(lm);
+          if (!baseline) { baseline = { x: nose.x, y: nose.y }; return; }
+          const dx = nose.x - baseline.x;
+          const dy = nose.y - baseline.y;
+          if (challengeId === 'left'  && dx < -MOVE_PX) done(true);
+          if (challengeId === 'right' && dx >  MOVE_PX) done(true);
+          if (challengeId === 'nod'   && dy >  MOVE_PX) done(true);
+        }
+      }, INTERVAL_MS);
+    });
+  }
+};
+
+window.Liveness = Liveness;

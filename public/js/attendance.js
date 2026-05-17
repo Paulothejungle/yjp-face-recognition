@@ -103,14 +103,102 @@ function closeErrorOverlay() {
 
 document.getElementById('btn-close-error').addEventListener('click', closeErrorOverlay);
 
+// ── Liveness UI helpers
+const livenessOverlay = () => document.getElementById('liveness-overlay');
+const livenessIcon    = () => document.getElementById('liveness-icon');
+const livenessText    = () => document.getElementById('liveness-text');
+const livenessStatus  = () => document.getElementById('liveness-status');
+const livenessRetry   = () => document.getElementById('liveness-retry-btn');
+const timerBar        = () => document.getElementById('liveness-timer-bar');
+
+function showLiveness(challenge) {
+  livenessIcon().textContent  = challenge.icon;
+  livenessText().textContent  = challenge.text;
+  livenessStatus().textContent = 'Ikuti instruksi di atas dalam 6 detik';
+  livenessRetry().style.display = 'none';
+  timerBar().style.transition = 'none';
+  timerBar().style.width = '100%';
+  livenessOverlay().style.display = 'block';
+  // Mulai animasi timer bar (6 detik)
+  requestAnimationFrame(() => {
+    timerBar().style.transition = 'width 6s linear';
+    timerBar().style.width = '0%';
+  });
+}
+
+function hideLiveness() {
+  livenessOverlay().style.display = 'none';
+}
+
+function setLivenessSuccess() {
+  livenessIcon().textContent   = '✅';
+  livenessText().textContent   = 'Liveness Terverifikasi!';
+  livenessStatus().textContent = 'Sedang memproses absensi...';
+  timerBar().style.transition  = 'none';
+  timerBar().style.width       = '100%';
+  timerBar().style.background  = '#10b981';
+  livenessRetry().style.display = 'none';
+}
+
+function setLivenessFail(msg) {
+  livenessIcon().textContent   = '❌';
+  livenessText().textContent   = 'Tantangan Gagal';
+  livenessStatus().textContent = msg || 'Waktu habis. Silakan coba lagi.';
+  timerBar().style.transition  = 'none';
+  timerBar().style.width       = '0%';
+  livenessRetry().style.display = 'inline-block';
+}
+
+// Jalankan liveness challenge + retry jika gagal
+// Returns true jika berhasil, false jika user batal
+function runLivenessFlow(match) {
+  return new Promise(resolve => {
+    const attempt = async () => {
+      const challenge = Liveness.random();
+      showLiveness(challenge);
+
+      const result = await Liveness.runChallenge(videoEl, challenge.id, 6000);
+
+      if (result.passed) {
+        setLivenessSuccess();
+        await new Promise(r => setTimeout(r, 900));
+        hideLiveness();
+        resolve(true);
+      } else {
+        setLivenessFail('Waktu habis. Tekan tombol di bawah untuk coba tantangan baru.');
+        // Beri tombol retry
+        window._livenessRetry = () => {
+          window._livenessRetry = null;
+          timerBar().style.background = 'linear-gradient(90deg, var(--primary), #818cf8)';
+          attempt();
+        };
+      }
+    };
+    attempt();
+  });
+}
+
 // ── Handle face match
 async function handleDetected(match) {
   if (isProcessing) return;
   isProcessing = true;
-  FaceRec.stopVideo();
+
+  // Pause loop deteksi tapi biarkan video tetap hidup (untuk liveness)
+  FaceRec.pauseDetection();
 
   try {
-    // Ambil lokasi GPS
+    // ── Liveness Challenge
+    const livenessOk = await runLivenessFlow(match);
+    if (!livenessOk) {
+      isProcessing = false;
+      startDetection(); // resume deteksi
+      return;
+    }
+
+    // Liveness passed — sekarang stop video
+    FaceRec.stopVideo();
+
+    // ── Ambil lokasi GPS
     let loc;
     try {
       loc = await getLocation();
@@ -120,21 +208,19 @@ async function handleDetected(match) {
       return;
     }
 
-    // Tentukan action: checkin atau checkout
+    // ── Tentukan action: checkin atau checkout
     const today = new Date().toISOString().split('T')[0];
     const existing = await Auth.apiCall('GET', `/api/attendance/me?date=${today}`);
     const rec = existing[0];
 
-    // Jika sudah absen masuk dan keluar, hentikan proses (jangan hit API lagi)
     if (rec && rec.check_in && rec.check_out) {
       showOverlay('success', '🎉', 'Absen Selesai', 'Anda sudah menyelesaikan absensi masuk dan keluar untuk hari ini.');
-      // isProcessing dibiarkan true agar tidak mendeteksi lagi sampai kamera direstart manual
       return;
     }
 
     const action = (!rec || !rec.check_in) ? 'checkin' : 'checkout';
 
-    // Kirim ke API
+    // ── Kirim ke API
     const result = await Auth.apiCall('POST', `/api/attendance/${action}`, {
       employee_id: match.id,
       lat: loc.lat,
@@ -147,15 +233,14 @@ async function handleDetected(match) {
     const actionLabel = action === 'checkin' ? 'Absen Masuk' : 'Absen Keluar';
     showOverlay('success', '✅', `${actionLabel} Berhasil!`, `${match.name} — ${result.message}`);
     showToast('success', actionLabel, result.message);
+
   } catch (err) {
     showOverlay('error', '❌', 'Absen Ditolak', err.message);
     showToast('error', 'Absen Ditolak', err.message);
-    // isProcessing dibiarkan true agar kamera tidak melakukan deteksi beruntun!
   }
 }
 
 function restartCamera() {
-  // Tidak perlu delay 3 detik lagi karena user memicunya manual lewat tombol Tutup
   FaceRec.startVideo(videoEl).then(() => {
     videoEl.addEventListener('play', startDetection, { once: true });
   }).catch(e => console.log(e));

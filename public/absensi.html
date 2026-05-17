@@ -57,6 +57,24 @@
     .loading-model { text-align: center; padding: 40px 20px; color: var(--text-2); }
     .loading-model .progress-bar { height: 4px; background: var(--bg-3); border-radius: 2px; margin-top: 16px; overflow: hidden; }
     .loading-model .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 2px; transition: width 0.3s; }
+
+    /* ── Liveness Challenge Overlay ── */
+    #liveness-overlay {
+      display: none; position: absolute; bottom: 0; left: 0; right: 0; z-index: 6;
+      background: linear-gradient(to top, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.55) 100%);
+      padding: 18px 16px 20px; text-align: center;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    #liveness-icon { font-size: 38px; margin-bottom: 6px; animation: iconPulse 1s ease-in-out infinite alternate; }
+    @keyframes iconPulse { from { transform: scale(1); } to { transform: scale(1.12); } }
+    #liveness-text { font-weight: 800; color: white; font-size: 16px; margin-bottom: 12px; letter-spacing: 0.3px; }
+    #liveness-timer-wrap { height: 5px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+    #liveness-timer-bar { height: 100%; background: linear-gradient(90deg, var(--primary), #818cf8); border-radius: 3px; transition: width 0.1s linear; width: 100%; }
+    #liveness-status { font-size: 13px; color: rgba(255,255,255,0.65); min-height: 20px; }
+    #liveness-retry-btn { display:none; margin-top:10px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:white; padding:7px 20px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    #liveness-retry-btn:hover { background:rgba(255,255,255,0.22); }
   </style>
 </head>
 <body>
@@ -101,6 +119,16 @@
             <div id="detected-info" class="hidden detected-name">
               <div class="name" id="detected-name-text">-</div>
               <div class="confidence" id="detected-confidence"></div>
+            </div>
+            <!-- Liveness Challenge Overlay -->
+            <div id="liveness-overlay">
+              <div id="liveness-icon">👁️</div>
+              <div id="liveness-text">Verifikasi liveness...</div>
+              <div id="liveness-timer-wrap">
+                <div id="liveness-timer-bar"></div>
+              </div>
+              <div id="liveness-status">Ikuti instruksi di atas</div>
+              <button id="liveness-retry-btn" onclick="window._livenessRetry && window._livenessRetry()">🔄 Coba Tantangan Baru</button>
             </div>
           </div>
 
