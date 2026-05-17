@@ -14,13 +14,13 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
-    .employee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .employee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
     .emp-card { position: relative; overflow: hidden; cursor: pointer; transition: var(--transition); }
     .emp-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(59,130,246,0.2); border-color: var(--border-active); }
     .emp-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: white; margin-bottom: 12px; overflow: hidden; border: 3px solid var(--border); }
     .emp-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .emp-badge { position: absolute; top: 12px; right: 12px; }
-    .emp-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .emp-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 
     .enrollment-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
     .enrollment-thumb { aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--bg-3); border: 2px solid var(--border); position: relative; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 20px; }
@@ -31,6 +31,20 @@
     #enrollment-video { width: 100%; border-radius: var(--radius); }
 
     #settings-map { height: 300px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+
+    @media (max-width: 768px) {
+      .employee-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+      .emp-avatar { width: 52px; height: 52px; font-size: 22px; }
+      .emp-actions .btn { padding: 6px 8px; font-size: 11px; }
+      .enrollment-preview { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+      #settings-map { height: 240px; }
+    }
+    @media (max-width: 480px) {
+      .employee-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .emp-card { padding: 12px; }
+      .emp-avatar { width: 46px; height: 46px; font-size: 18px; margin-bottom: 8px; }
+      .emp-badge { font-size: 10px; }
+    }
   </style>
 </head>
 <body>
