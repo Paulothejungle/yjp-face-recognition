@@ -230,10 +230,14 @@ const Liveness = {
 
   // Jalankan satu challenge — return { passed: true/false }
   async runChallenge(videoEl, challengeId, timeoutMs = 6000) {
-    const EAR_CLOSED  = 0.22;  // mata tertutup (kedip)
-    const EAR_OPEN    = 0.28;  // mata harus mulai dari terbuka
-    const MOVE_PX     = 22;    // pixel gerakan kepala
-    const INTERVAL_MS = 130;   // cek setiap 130ms
+    // ── Threshold EAR blink ──
+    // EAR (Eye Aspect Ratio): rasio tinggi/lebar area mata
+    // Mata terbuka normal: ~0.25–0.35 | Mata tertutup: ~0.05–0.15
+    // Threshold dibuat longgar agar bekerja di berbagai jarak & kamera HP
+    const EAR_OPEN    = 0.22;  // minimal EAR agar dianggap mata "terbuka"
+    const EAR_CLOSED  = 0.15;  // EAR di bawah ini = mata tertutup (kedip)
+    const MOVE_PX     = 20;    // pixel gerakan kepala
+    const INTERVAL_MS = 80;    // cek setiap 80ms (lebih cepat agar kedipan cepat tidak terlewat)
 
     return new Promise(resolve => {
       const deadline = Date.now() + timeoutMs;
@@ -255,7 +259,9 @@ const Liveness = {
 
         if (challengeId === 'blink') {
           const ear = this._avgEAR(lm);
-          if (ear > EAR_OPEN)             eyeWasOpen = true;
+          // Catat saat mata sudah terbuka (kondisi awal)
+          if (!eyeWasOpen && ear > EAR_OPEN) eyeWasOpen = true;
+          // Deteksi kedip: setelah mata terbuka, lalu EAR turun di bawah threshold
           if (eyeWasOpen && ear < EAR_CLOSED) done(true);
         } else {
           const nose = this._nose(lm);

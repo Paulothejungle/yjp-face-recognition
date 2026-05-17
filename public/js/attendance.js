@@ -119,17 +119,24 @@ document.getElementById('liveness-retry-btn').addEventListener('click', () => {
 });
 
 function showLiveness(challenge) {
-  livenessIcon().textContent  = challenge.icon;
-  livenessText().textContent  = challenge.text;
+  livenessIcon().textContent   = challenge.icon;
+  livenessText().textContent   = challenge.text;
   livenessStatus().textContent = 'Ikuti instruksi di atas dalam 6 detik';
   livenessRetry().style.display = 'none';
-  timerBar().style.transition = 'none';
-  timerBar().style.width = '100%';
+
+  // Reset bar ke 100% tanpa animasi dulu
+  const bar = timerBar();
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  bar.style.background = 'linear-gradient(90deg, var(--primary), #818cf8)';
   livenessOverlay().style.display = 'block';
-  // Mulai animasi timer bar (6 detik)
+
+  // Double rAF: pastikan browser sudah render width:100% sebelum mulai transisi
   requestAnimationFrame(() => {
-    timerBar().style.transition = 'width 6s linear';
-    timerBar().style.width = '0%';
+    requestAnimationFrame(() => {
+      bar.style.transition = 'width 6s linear';
+      bar.style.width = '0%';
+    });
   });
 }
 
